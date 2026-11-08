@@ -1,0 +1,22 @@
+{
+  "rules": [
+    {
+      "id": "rule_temp_critical",
+      "name": "High Temperature Warning",
+      "metric": "temperature",
+      "condition": "gt",
+      "threshold": 85.0,
+      "hysteresis": 5.0,
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "rule_vibration_spike",
+      "name": "Excessive Bearing Vibration",
+      "metric": "vibration",
+      "condition": "gt",
+      "threshold": 18.5,
+      "hysteresis": 2.0,
+      "severity": "HIGH"
+    }
+  ]
+}
