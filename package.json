@@ -1,0 +1,20 @@
+{
+  "name": "nexusflow-iot-engine",
+  "version": "1.0.0",
+  "description": "NexusFlow: Visual IoT Telemetry & Rule Engine",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.2",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
