@@ -7,6 +7,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - **AST Rule Evaluator**: Declarative threshold, composite boolean (`AND`/`OR`), and sliding-window aggregation rules with hysteresis deadband recovery.
 - **Multi-channel Alert Dispatcher**: Multi-destination notification routing with exponential backoff retries, rate limiting, and deduplication.
 - **End-to-End Pipeline**: Ingestion pipeline tracking device registry state, heartbeats, and active metric feeds.
+- **Prometheus / OpenMetrics Exporter**: Native `/metrics` exposition of counters and gauges for enterprise observability.
 - **Real-time WebSocket Streaming**: Live broadcast of telemetry updates and critical threshold alerts to dashboard clients.
 
 ## Architecture
@@ -14,6 +15,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - `backend/engine/ruleEvaluator.js`: Declarative AST rule evaluator with stateful hysteresis damping.
 - `backend/engine/alertDispatcher.js`: Notification dispatcher with exponential backoff and rate limiting.
 - `backend/engine/telemetryPipeline.js`: Coordinates streaming ingest, device registry, and alert triggers.
+- `backend/engine/metricExporter.js`: OpenMetrics and Prometheus text exposition serializer.
 - `backend/server.js`: Express REST API and WebSocket broadcast server.
 - `tests/`: Automated unit and integration test suite (`node --test`).
 
@@ -28,6 +30,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 | `POST` | `/api/rules` | Register a new declarative rule |
 | `GET` | `/api/alerts/history` | Audit log of dispatched alerts |
 | `GET` | `/api/metrics/summary` | Pipeline uptime, ingestion count, and alert statistics |
+| `GET` | `/metrics` | Prometheus / OpenMetrics text exposition format |
 
 ## Running Tests
 ```bash

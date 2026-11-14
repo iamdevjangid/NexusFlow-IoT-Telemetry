@@ -6,6 +6,7 @@ const { WebSocketServer } = require('ws');
 require('dotenv').config();
 
 const { TelemetryPipeline } = require('./engine/telemetryPipeline');
+const { MetricExporter } = require('./engine/metricExporter');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,19 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 const pipeline = new TelemetryPipeline();
+const exporter = new MetricExporter();
+
+// Track Prometheus metrics on pipeline events
+pipeline.on('telemetry', (event) => {
+  exporter.incCounter('nexusflow_telemetry_ingested_total', { device_id: event.deviceId }, 1, 'Total telemetry events ingested');
+  if (typeof event.value === 'number') {
+    exporter.setGauge('nexusflow_sensor_latest_value', { device_id: event.deviceId, metric: event.metric }, event.value, 'Latest sensor metric value');
+  }
+});
+
+pipeline.on('alert', (alert) => {
+  exporter.incCounter('nexusflow_alerts_triggered_total', { severity: alert.severity, rule_id: alert.ruleId }, 1, 'Total alerts triggered');
+});
 
 const wss = new WebSocketServer({ server });
 
@@ -141,6 +155,13 @@ app.get('/api/alerts/history', (req, res) => {
 // Metrics summary and telemetry engine statistics
 app.get('/api/metrics/summary', (req, res) => {
   res.json(pipeline.getStats());
+});
+
+// OpenMetrics / Prometheus metrics endpoint
+app.get('/metrics', (req, res) => {
+  exporter.setGauge('nexusflow_active_devices_count', {}, pipeline.getDevices().length, 'Count of active tracked devices');
+  res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(exporter.toPrometheusFormat());
 });
 
 const PORT = process.env.PORT || 4000;
