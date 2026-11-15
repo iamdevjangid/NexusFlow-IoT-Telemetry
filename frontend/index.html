@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusFlow | Visual IoT Telemetry & Rule Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <h1>NexusFlow</h1>
+          <span class="brand-subtitle">IoT Stream Engine & AST Anomaly Detector</span>
+        </div>
+      </div>
+      
+      <div class="nav-status">
+        <div class="status-indicator">
+          <span class="status-dot connected" id="wsDot"></span>
+          <span class="status-text" id="wsStatus">LIVE WEBSOCKET CONNECTED</span>
+        </div>
+        <a href="/metrics" target="_blank" class="badge-link">/metrics (Prometheus)</a>
+      </div>
+    </header>
+
+    <!-- KPI HUD -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">TOTAL INGESTED</span>
+        <div class="kpi-value" id="kpiIngested">0</div>
+        <span class="kpi-delta">Stream messages</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">ACTIVE DEVICES</span>
+        <div class="kpi-value" id="kpiDevices">0</div>
+        <span class="kpi-delta">Connected edge nodes</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">DISPATCHED ALERTS</span>
+        <div class="kpi-value warning" id="kpiAlerts">0</div>
+        <span class="kpi-delta">Threshold incidents</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">ACTIVE AST RULES</span>
+        <div class="kpi-value success" id="kpiRules">0</div>
+        <span class="kpi-delta">Evaluator policies</span>
+      </div>
+    </section>
+
+    <!-- Main Operational Workspace -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Waveform Canvas -->
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <h2>Live Telemetry Waveform</h2>
+          </div>
+          <div class="chart-controls">
+            <select id="metricSelector" class="form-select">
+              <option value="vibration_rms">vibration_rms (mm/s)</option>
+              <option value="temperature">temperature (°C)</option>
+              <option value="pressure_psi">pressure (PSI)</option>
+            </select>
+            <button class="btn btn-sm" id="btnSimulate">Inject Sample</button>
+          </div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="waveformCanvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Right Column: Incident Feed -->
+      <section class="panel alerts-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <h2>Incident Dispatch Feed</h2>
+          </div>
+          <span class="badge" id="alertCountBadge">0 Active</span>
+        </div>
+        <div class="alerts-feed" id="alertsFeed">
+          <div class="empty-state">No active threshold alerts. Telemetry running within nominal operating boundaries.</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Fleet Status & Ingest Controls -->
+    <section class="bottom-grid">
+      <!-- Device Registry Table -->
+      <div class="panel device-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Device Fleet Status</h2>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Type</th>
+                <th>Active Feeds</th>
+                <th>Latest Value</th>
+                <th>Health</th>
+              </tr>
+            </thead>
+            <tbody id="deviceTableBody">
+              <tr>
+                <td colspan="5" class="empty-row">Awaiting device telemetry streams...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Test Ingestion Console -->
+      <div class="panel console-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Live Ingestion Console</h2>
+          </div>
+        </div>
+        <form id="ingestForm" class="ingest-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Device ID</label>
+              <input type="text" id="inputDevice" value="turbofan_unit_01" required>
+            </div>
+            <div class="form-group">
+              <label>Metric</label>
+              <input type="text" id="inputMetric" value="vibration_rms" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Value</label>
+              <input type="number" step="0.1" id="inputValue" value="14.8" required>
+            </div>
+            <div class="form-group">
+              <label>Unit</label>
+              <input type="text" id="inputUnit" value="mm/s">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Transmit Telemetry Frame</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
