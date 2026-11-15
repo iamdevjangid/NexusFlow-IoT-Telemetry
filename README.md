@@ -8,6 +8,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - **Multi-channel Alert Dispatcher**: Multi-destination notification routing with exponential backoff retries, rate limiting, and deduplication.
 - **End-to-End Pipeline**: Ingestion pipeline tracking device registry state, heartbeats, and active metric feeds.
 - **Prometheus / OpenMetrics Exporter**: Native `/metrics` exposition of counters and gauges for enterprise observability.
+- **IoT Fleet Device Simulator**: Configurable synthetic time-series generator with Gaussian jitter and anomaly injection across turbofan, solar inverter, and cold-chain asset profiles.
 - **Real-time WebSocket Streaming**: Live broadcast of telemetry updates and critical threshold alerts to dashboard clients.
 
 ## Architecture
@@ -16,6 +17,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - `backend/engine/alertDispatcher.js`: Notification dispatcher with exponential backoff and rate limiting.
 - `backend/engine/telemetryPipeline.js`: Coordinates streaming ingest, device registry, and alert triggers.
 - `backend/engine/metricExporter.js`: OpenMetrics and Prometheus text exposition serializer.
+- `backend/simulator/deviceSimulator.js`: Synthetic fleet time-series generator with Gaussian jitter & anomaly injection.
 - `backend/server.js`: Express REST API and WebSocket broadcast server.
 - `tests/`: Automated unit and integration test suite (`node --test`).
 

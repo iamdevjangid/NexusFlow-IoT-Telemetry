@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
+    "simulate": "node -e \"const { DeviceSimulator } = require('./backend/simulator/deviceSimulator'); new DeviceSimulator().startEmissionLoop({ onEmit: b => console.log(JSON.stringify(b)) });\"",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
