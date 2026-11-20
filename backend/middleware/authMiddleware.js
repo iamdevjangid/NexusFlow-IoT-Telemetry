@@ -6,7 +6,7 @@ function createAuthMiddleware(validApiKeys = ['nexus-secret-key-prod', 'nexus-se
     if (req.path === '/' || req.path === '/metrics' || req.path.startsWith('/api/metrics/summary')) {
       return next();
     }
-    const apiKey = req.headers['x-api-key'] || req.query.api_key;
+    const apiKey = (req.headers && req.headers['x-api-key']) || (req.query && req.query.api_key);
     if (!apiKey || !validApiKeys.includes(apiKey)) {
       return res.status(401).json({ error: 'Unauthorized: Invalid or missing X-API-Key header' });
     }
