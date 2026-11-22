@@ -9,6 +9,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - **End-to-End Pipeline**: Ingestion pipeline tracking device registry state, heartbeats, and active metric feeds.
 - **Prometheus / OpenMetrics Exporter**: Native `/metrics` exposition of counters and gauges for enterprise observability.
 - **IoT Fleet Device Simulator**: Configurable synthetic time-series generator with Gaussian jitter and anomaly injection across turbofan, solar inverter, and cold-chain asset profiles.
+- **Historical Event Replay Engine**: Post-mortem telemetry replayer with variable speed multipliers (1x–100x), pause/resume, and chronological seeking for offline AST rule validation.
 - **Real-time WebSocket Streaming**: Live broadcast of telemetry updates and critical threshold alerts to dashboard clients.
 
 ## Architecture
@@ -17,6 +18,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - `backend/engine/alertDispatcher.js`: Notification dispatcher with exponential backoff and rate limiting.
 - `backend/engine/telemetryPipeline.js`: Coordinates streaming ingest, device registry, and alert triggers.
 - `backend/engine/metricExporter.js`: OpenMetrics and Prometheus text exposition serializer.
+- `backend/engine/eventReplay.js`: Historical time-series replay engine with speed controls and seek capabilities.
 - `backend/simulator/deviceSimulator.js`: Synthetic fleet time-series generator with Gaussian jitter & anomaly injection.
 - `backend/server.js`: Express REST API and WebSocket broadcast server.
 - `tests/`: Automated unit and integration test suite (`node --test`).
@@ -33,6 +35,11 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 | `GET` | `/api/alerts/history` | Audit log of dispatched alerts |
 | `GET` | `/api/metrics/summary` | Pipeline uptime, ingestion count, and alert statistics |
 | `GET` | `/metrics` | Prometheus / OpenMetrics text exposition format |
+| `POST` | `/api/replay/start` | Start historical telemetry playback through pipeline |
+| `GET` | `/api/replay/status` | Current replay progress and cursor offset |
+| `POST` | `/api/replay/pause` | Pause active replay execution |
+| `POST` | `/api/replay/resume` | Resume paused replay execution |
+| `POST` | `/api/replay/stop` | Stop replay and reset cursor |
 
 ## Running Tests
 ```bash

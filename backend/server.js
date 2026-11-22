@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const { TelemetryPipeline } = require('./engine/telemetryPipeline');
 const { MetricExporter } = require('./engine/metricExporter');
+const { EventReplayEngine } = require('./engine/eventReplay');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 const pipeline = new TelemetryPipeline();
 const exporter = new MetricExporter();
+const replayEngine = new EventReplayEngine();
 
 // Track Prometheus metrics on pipeline events
 pipeline.on('telemetry', (event) => {
@@ -162,6 +164,44 @@ app.get('/metrics', (req, res) => {
   exporter.setGauge('nexusflow_active_devices_count', {}, pipeline.getDevices().length, 'Count of active tracked devices');
   res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
   res.send(exporter.toPrometheusFormat());
+});
+
+// Historical Event Replay endpoints
+app.post('/api/replay/start', async (req, res) => {
+  try {
+    const { events, speedMultiplier } = req.body;
+    if (events && Array.isArray(events)) {
+      replayEngine.loadEvents(events);
+    }
+    replayEngine.start({
+      speedMultiplier: speedMultiplier || 1.0,
+      onEvent: async (event) => {
+        await pipeline.ingest(event);
+      }
+    });
+    res.json({ success: true, status: replayEngine.getStatus() });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/replay/status', (req, res) => {
+  res.json(replayEngine.getStatus());
+});
+
+app.post('/api/replay/pause', (req, res) => {
+  replayEngine.pause();
+  res.json({ success: true, status: replayEngine.getStatus() });
+});
+
+app.post('/api/replay/resume', (req, res) => {
+  replayEngine.resume();
+  res.json({ success: true, status: replayEngine.getStatus() });
+});
+
+app.post('/api/replay/stop', (req, res) => {
+  replayEngine.stop();
+  res.json({ success: true, status: replayEngine.getStatus() });
 });
 
 const PORT = process.env.PORT || 4000;
