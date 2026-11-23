@@ -8,6 +8,7 @@ require('dotenv').config();
 const { TelemetryPipeline } = require('./engine/telemetryPipeline');
 const { MetricExporter } = require('./engine/metricExporter');
 const { EventReplayEngine } = require('./engine/eventReplay');
+const { DeadLetterQueue } = require('./engine/deadLetterQueue');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,6 +20,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 const pipeline = new TelemetryPipeline();
 const exporter = new MetricExporter();
 const replayEngine = new EventReplayEngine();
+const dlq = new DeadLetterQueue();
 
 // Track Prometheus metrics on pipeline events
 pipeline.on('telemetry', (event) => {
@@ -102,7 +104,8 @@ app.post('/api/telemetry', async (req, res) => {
     const result = await pipeline.ingest(body);
     res.status(201).json(result);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    dlq.enqueue(req.body, 'INGESTION_ERROR', { error: err.message });
+    res.status(400).json({ error: err.message, quarantined: true });
   }
 });
 
@@ -202,6 +205,31 @@ app.post('/api/replay/resume', (req, res) => {
 app.post('/api/replay/stop', (req, res) => {
   replayEngine.stop();
   res.json({ success: true, status: replayEngine.getStatus() });
+});
+
+// Dead-Letter Queue (DLQ) Quarantine Endpoints
+app.get('/api/dlq', (req, res) => {
+  const limit = parseInt(req.query.limit, 10) || 50;
+  res.json({
+    metrics: dlq.getMetrics(),
+    items: dlq.peek(limit)
+  });
+});
+
+app.post('/api/dlq/:id/retry', async (req, res) => {
+  try {
+    const outcome = await dlq.retry(req.params.id, async (payload) => {
+      return await pipeline.ingest(payload);
+    });
+    res.json(outcome);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+app.delete('/api/dlq', (req, res) => {
+  const purged = dlq.purge(req.query.reason);
+  res.json({ success: true, purgedCount: purged });
 });
 
 const PORT = process.env.PORT || 4000;
