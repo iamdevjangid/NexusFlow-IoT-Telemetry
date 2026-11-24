@@ -9,6 +9,7 @@ const { TelemetryPipeline } = require('./engine/telemetryPipeline');
 const { MetricExporter } = require('./engine/metricExporter');
 const { EventReplayEngine } = require('./engine/eventReplay');
 const { DeadLetterQueue } = require('./engine/deadLetterQueue');
+const { Downsampler } = require('./engine/downsampler');
 
 const app = express();
 const server = http.createServer(app);
@@ -134,6 +135,36 @@ app.get('/api/devices/:id/metrics/:metric', (req, res) => {
     windowMs,
     count: samples.length,
     samples
+  });
+});
+
+// Downsampled metric history query (LTTB, MinMax, TimeAggregate)
+app.get('/api/devices/:id/metrics/:metric/downsampled', (req, res) => {
+  const { id, metric } = req.params;
+  const windowMs = parseInt(req.query.windowMs, 10) || 300000;
+  const threshold = parseInt(req.query.threshold, 10) || 50;
+  const algorithm = req.query.algorithm || 'lttb';
+
+  const rawSamples = pipeline.buffer.getWindow(id, metric, windowMs);
+  let processed = [];
+
+  if (algorithm === 'minmax') {
+    const chunkSize = Math.max(2, Math.floor(rawSamples.length / threshold));
+    processed = Downsampler.minMax(rawSamples, chunkSize);
+  } else if (algorithm === 'aggregate') {
+    const bucketDurationMs = parseInt(req.query.bucketMs, 10) || 60000;
+    processed = Downsampler.timeAggregate(rawSamples, bucketDurationMs);
+  } else {
+    processed = Downsampler.lttb(rawSamples, threshold);
+  }
+
+  res.json({
+    deviceId: id,
+    metric,
+    algorithm,
+    rawCount: rawSamples.length,
+    downsampledCount: processed.length,
+    points: processed
   });
 });
 

@@ -12,6 +12,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - **Historical Event Replay Engine**: Post-mortem telemetry replayer with variable speed multipliers (1x–100x), pause/resume, and chronological seeking for offline AST rule validation.
 - **Statistical Anomaly Detector**: Real-time Welford online variance and dynamic Z-score / MAD outlier detection.
 - **Dead-Letter Queue (DLQ)**: Quarantines malformed or out-of-bounds telemetry payloads with operator retry capabilities.
+- **LTTB Downsampler & Decimation Engine**: Preserves critical peaks, envelope geometry, and transient anomalies while reducing time-series density via Largest-Triangle-Three-Buckets and Min-Max decimation.
 - **Real-time WebSocket Streaming**: Live broadcast of telemetry updates and critical threshold alerts to dashboard clients.
 
 ## Architecture
@@ -21,6 +22,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - `backend/engine/telemetryPipeline.js`: Coordinates streaming ingest, device registry, and alert triggers.
 - `backend/engine/metricExporter.js`: OpenMetrics and Prometheus text exposition serializer.
 - `backend/engine/anomalyDetector.js`: Statistical online Welford variance and Z-Score outlier detector.
+- `backend/engine/downsampler.js`: Largest-Triangle-Three-Buckets (LTTB) and Min-Max time-series decimation.
 - `backend/engine/deadLetterQueue.js`: Ingestion packet quarantine, metrics, and retry dispatcher.
 - `backend/engine/eventReplay.js`: Historical time-series replay engine with speed controls and seek capabilities.
 - `backend/simulator/deviceSimulator.js`: Synthetic fleet time-series generator with Gaussian jitter & anomaly injection.
@@ -34,6 +36,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 | `GET` | `/api/devices` | List registered IoT devices and active metrics |
 | `GET` | `/api/devices/:id` | Get latest telemetry state snapshot for a device |
 | `GET` | `/api/devices/:id/metrics/:metric` | Query windowed time-series samples |
+| `GET` | `/api/devices/:id/metrics/:metric/downsampled` | Decimated time-series query (LTTB, Min-Max, Aggregate) |
 | `GET` | `/api/rules` | List active evaluator rules |
 | `POST` | `/api/rules` | Register a new declarative rule |
 | `GET` | `/api/alerts/history` | Audit log of dispatched alerts |
