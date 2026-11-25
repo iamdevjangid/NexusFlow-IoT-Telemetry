@@ -10,6 +10,7 @@ const { MetricExporter } = require('./engine/metricExporter');
 const { EventReplayEngine } = require('./engine/eventReplay');
 const { DeadLetterQueue } = require('./engine/deadLetterQueue');
 const { Downsampler } = require('./engine/downsampler');
+const { CircuitBreaker } = require('./engine/circuitBreaker');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +23,7 @@ const pipeline = new TelemetryPipeline();
 const exporter = new MetricExporter();
 const replayEngine = new EventReplayEngine();
 const dlq = new DeadLetterQueue();
+const circuitBreaker = new CircuitBreaker();
 
 // Track Prometheus metrics on pipeline events
 pipeline.on('telemetry', (event) => {
@@ -261,6 +263,21 @@ app.post('/api/dlq/:id/retry', async (req, res) => {
 app.delete('/api/dlq', (req, res) => {
   const purged = dlq.purge(req.query.reason);
   res.json({ success: true, purgedCount: purged });
+});
+
+// Ingestion Circuit Breaker & Backpressure Endpoints
+app.get('/api/circuit-breaker/status', (req, res) => {
+  res.json(circuitBreaker.getStatus());
+});
+
+app.post('/api/circuit-breaker/reset', (req, res) => {
+  circuitBreaker.reset();
+  res.json({ success: true, status: circuitBreaker.getStatus() });
+});
+
+app.post('/api/circuit-breaker/trip', (req, res) => {
+  circuitBreaker.trip();
+  res.json({ success: true, status: circuitBreaker.getStatus() });
 });
 
 const PORT = process.env.PORT || 4000;
