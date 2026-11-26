@@ -186,7 +186,8 @@ class RuleEvaluator extends EventEmitter {
       const metricValue = this._extractMetricValue(node, deviceId, timestamp);
       if (metricValue === null || metricValue === undefined) return false;
 
-      return this._compare(metricValue, node.operator, node.value);
+      const targetValue = node.value !== undefined ? node.value : node.threshold;
+      return this._compare(metricValue, node.operator, targetValue);
     }
 
     return false;

@@ -5,6 +5,8 @@ const cors = require('cors');
 const { WebSocketServer } = require('ws');
 require('dotenv').config();
 
+const fs = require('fs');
+const os = require('os');
 const { TelemetryPipeline } = require('./engine/telemetryPipeline');
 const { MetricExporter } = require('./engine/metricExporter');
 const { EventReplayEngine } = require('./engine/eventReplay');
@@ -13,6 +15,7 @@ const { Downsampler } = require('./engine/downsampler');
 const { CircuitBreaker } = require('./engine/circuitBreaker');
 const { DeviceSimulator, DEVICE_PROFILES } = require('./simulator/deviceSimulator');
 const { TelemetryExporter } = require('./engine/telemetryExporter');
+const { HostMetricsSensor } = require('./engine/hostMetricsSensor');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +32,51 @@ const circuitBreaker = new CircuitBreaker();
 const simulator = new DeviceSimulator();
 let isSimulatorActive = false;
 let simulatorEmittedCount = 0;
+
+// Host Machine Real Hardware Sensor
+const hostSensor = new HostMetricsSensor({
+  deviceId: 'edge_gateway_host_pc',
+  intervalMs: 1000,
+  onSample: async (batch) => {
+    for (const sample of batch) {
+      try {
+        await pipeline.ingest(sample);
+      } catch (err) {}
+    }
+  }
+});
+
+// Load default AST rules on startup
+try {
+  const rulesPath = path.join(__dirname, 'config/defaultRules.json');
+  if (fs.existsSync(rulesPath)) {
+    const raw = fs.readFileSync(rulesPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed.rules && Array.isArray(parsed.rules)) {
+      parsed.rules.forEach(rule => pipeline.registerRule(rule));
+    }
+  }
+} catch (e) {
+  console.warn('Default rules load note:', e.message);
+}
+
+function startAllTelemetryFeeds() {
+  hostSensor.start();
+  if (!isSimulatorActive) {
+    isSimulatorActive = true;
+    simulator.startEmissionLoop({
+      intervalMs: 1200,
+      onEmit: async (batch) => {
+        for (const sample of batch) {
+          simulatorEmittedCount++;
+          try {
+            await pipeline.ingest(sample);
+          } catch (e) {}
+        }
+      }
+    });
+  }
+}
 
 // Track Prometheus metrics on pipeline events
 pipeline.on('telemetry', (event) => {
@@ -242,6 +290,10 @@ app.post('/api/simulator/inject-anomaly', (req, res) => {
   if (!deviceId || !metric || value === undefined) {
     return res.status(400).json({ error: 'deviceId, metric, and value are required' });
   }
+  if (deviceId === hostSensor.deviceId) {
+    hostSensor.injectAnomaly(metric, parseFloat(value));
+    return res.json({ success: true, message: `Host hardware anomaly queued for ${metric} with value ${value}` });
+  }
   simulator.injectAnomaly(deviceId, metric, parseFloat(value));
   res.json({ success: true, message: `Anomaly queued for ${deviceId}::${metric} with value ${value}` });
 });
@@ -364,10 +416,28 @@ app.post('/api/circuit-breaker/trip', (req, res) => {
   res.json({ success: true, status: circuitBreaker.getStatus() });
 });
 
+// Host Physical Machine Edge Sensor API
+app.get('/api/host-sensor/status', (req, res) => {
+  res.json({
+    deviceId: hostSensor.deviceId,
+    isRunning: hostSensor.isRunning,
+    systemInfo: {
+      platform: os.platform(),
+      arch: os.arch(),
+      cpus: os.cpus().length,
+      cpuModel: os.cpus()[0]?.model || 'Generic CPU',
+      totalMemoryMB: Math.round(os.totalmem() / (1024 * 1024)),
+      freeMemoryMB: Math.round(os.freemem() / (1024 * 1024)),
+      uptimeSeconds: Math.floor(os.uptime())
+    }
+  });
+});
+
 const PORT = process.env.PORT || 4000;
 if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
     console.log(`NexusFlow engine running on port ${PORT}`);
+    startAllTelemetryFeeds();
   });
 }
 

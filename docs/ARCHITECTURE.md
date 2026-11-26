@@ -81,6 +81,7 @@ graph TD
 | `/api/simulator/inject-anomaly` | `POST` | Inject forced anomaly value for automated rule testing |
 | `/api/export/csv` | `GET` | Download historical telemetry as standardized CSV |
 | `/api/export/json` | `GET` | Download historical telemetry as formatted JSON |
+| `/api/host-sensor/status` | `GET` | Retrieve real host physical hardware specs (CPU model, cores, RAM GB, OS) |
 | `/api/circuit-breaker/status` | `GET` | Inspect circuit breaker state and failure counters |
 | `/api/circuit-breaker/trip` | `POST` | Manually trip circuit breaker to OPEN |
 | `/api/circuit-breaker/reset` | `POST` | Reset circuit breaker to CLOSED |
@@ -88,8 +89,28 @@ graph TD
 
 ---
 
-## 4. Test Verification & Code Quality
-The system includes **66 comprehensive automated unit and integration tests** executing via Node.js native test runner:
+## 4. Real Physical Hardware Edge Sensor (`edge_gateway_host_pc`)
+To eliminate reliance on purely synthetic data and demonstrate genuine edge telemetry ingestion, NexusFlow integrates the `HostMetricsSensor`:
+* **Real CPU Utilization (%):** Calculated by computing the delta between OS CPU core idle ticks and total CPU ticks across all logical processors between successive samples.
+* **Physical RAM Consumption (% and MB):** Directly queries `os.totalmem()` and `os.freemem()` to provide genuine physical memory consumption.
+* **Node.js RSS Memory:** Tracks engine process memory footprint via `process.memoryUsage().rss`.
+* **Hardware Metadata Extraction:** Discovers processor brand/model, CPU architecture, core topology, and system uptime.
+
+---
+
+## 5. Next-Generation Visual Operations UI & 1D Kalman Filtering
+The front-end dashboard (`frontend/index.html`, `frontend/app.js`, `frontend/style.css`) is built with a cyber-industrial aesthetic:
+* **Interactive Multi-Trace Canvas:** Renders at retina High-DPI (60 FPS) with glowing bezier curves and translucent area gradients.
+* **Real-Time 1D Kalman Noise Filter:** Allows operators to toggle real-time Kalman filtering on the canvas, plotting both the raw jittery sensor signal (cyan) and the mathematically smoothed Kalman estimate (neon emerald) side-by-side.
+* **Dynamic AST Rule Threshold Overlay:** Draws dashed limit lines corresponding to active AST rules directly on the canvas.
+* **Asset Fleet Matrix:** Features live asset status cards for all 4 edge nodes (`edge_gateway_host_pc`, `turbofan_alpha`, `inverter_beta`, `cold_storage_gamma`) with instant "Chart" drilldown.
+* **Visual AST Rule Policy Studio:** Supports live rule registration, real-time unregistration, and hysteresis deadband inspection.
+
+---
+
+## 6. Test Verification & Code Quality
+The system includes **67 comprehensive automated unit and integration tests** executing via Node.js native test runner:
+* `host-metrics-sensor.test.js`: Physical kernel hardware metric sampling and bounds verification.
 * `alert-dispatcher.test.js`: Exponential retry, deduplication, and failure boundaries.
 * `anomaly-detector.test.js`: Welford variance, 3-sigma Z-scores, and MAD estimators.
 * `circuit-breaker.test.js`: State transitions (CLOSED $\to$ OPEN $\to$ HALF_OPEN $\to$ CLOSED).
@@ -104,4 +125,4 @@ Execution Command:
 ```bash
 npm test
 ```
-Result: **66 / 66 passing (100% pass rate)**.
+Result: **67 / 67 passing (100% pass rate)**.

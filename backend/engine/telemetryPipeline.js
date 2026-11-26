@@ -183,6 +183,7 @@ class TelemetryPipeline extends EventEmitter {
       totalIngested: this.stats.totalIngested,
       totalAlerts: this.stats.totalAlerts,
       activeDevices: this.deviceRegistry.size,
+      activeRules: this.evaluator.rules.size,
       registeredRules: this.evaluator.rules.size,
       dispatcherStats: this.dispatcher.stats
     };

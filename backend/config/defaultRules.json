@@ -1,22 +1,69 @@
 {
   "rules": [
     {
-      "id": "rule_temp_critical",
-      "name": "High Temperature Warning",
-      "metric": "temperature",
-      "condition": "gt",
-      "threshold": 85.0,
-      "hysteresis": 5.0,
+      "id": "rule_turbofan_vibration",
+      "name": "Turbofan ISO-10816 Bearing Vibration Critical",
+      "metric": "vibration_rms",
+      "condition": {
+        "metric": "vibration_rms",
+        "operator": ">",
+        "threshold": 18.0,
+        "value": 18.0
+      },
+      "hysteresisDeadband": 2.0,
       "severity": "CRITICAL"
     },
     {
-      "id": "rule_vibration_spike",
-      "name": "Excessive Bearing Vibration",
-      "metric": "vibration",
-      "condition": "gt",
-      "threshold": 18.5,
-      "hysteresis": 2.0,
-      "severity": "HIGH"
+      "id": "rule_turbofan_egt_overheat",
+      "name": "Turbine Core Exhaust Gas Overheat (EGT)",
+      "metric": "exhaust_temp",
+      "condition": {
+        "metric": "exhaust_temp",
+        "operator": ">",
+        "threshold": 850.0,
+        "value": 850.0
+      },
+      "hysteresisDeadband": 25.0,
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "rule_solar_frequency_deviation",
+      "name": "Grid Interconnection Frequency Deviation",
+      "metric": "grid_frequency",
+      "condition": {
+        "metric": "grid_frequency",
+        "operator": "<",
+        "threshold": 49.6,
+        "value": 49.6
+      },
+      "hysteresisDeadband": 0.2,
+      "severity": "WARNING"
+    },
+    {
+      "id": "rule_cold_chain_thaw",
+      "name": "Biotech Cryogenic Storage Thaw Breach",
+      "metric": "storage_temp",
+      "condition": {
+        "metric": "storage_temp",
+        "operator": ">",
+        "threshold": -15.0,
+        "value": -15.0
+      },
+      "hysteresisDeadband": 2.5,
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "rule_host_cpu_pressure",
+      "name": "Physical Host Edge Gateway CPU Overload",
+      "metric": "host_cpu_utilization",
+      "condition": {
+        "metric": "host_cpu_utilization",
+        "operator": ">",
+        "threshold": 85.0,
+        "value": 85.0
+      },
+      "hysteresisDeadband": 5.0,
+      "severity": "WARNING"
     }
   ]
 }
