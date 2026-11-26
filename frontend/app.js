@@ -146,7 +146,7 @@
   let maxHistory = 60; // 60s default
   const kalman = new KalmanFilter1D();
   let registeredRulesList = [];
-  let isSimulatorActive = true;
+  let isStreamPaused = false;
   let activeAlertFilter = 'ALL';
 
   // Rolling sparkline historical buffers (20 samples each)
@@ -208,7 +208,19 @@
     return { threshold: parseFloat(th), operator: op, severity: match.severity || 'WARNING' };
   }
 
-  // Waveform Canvas Rendering Loop (Locked 60 FPS)
+  // Helper for buttery-smooth spline path drawing
+  function drawSmoothSpline(points) {
+    if (points.length < 2) return;
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 0; i < points.length - 1; i++) {
+      const xc = (points[i].x + points[i + 1].x) / 2;
+      const yc = (points[i].y + points[i + 1].y) / 2;
+      ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+    }
+    ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+  }
+
+  // Waveform Canvas Rendering Loop (Locked 60 FPS Smooth Rendering)
   function renderCanvas() {
     if (!ctx || !canvas) return;
     const dpr = window.devicePixelRatio || 1;
@@ -217,16 +229,16 @@
 
     ctx.clearRect(0, 0, width, height);
 
-    // Subtle Cyber Scanline Grid
-    ctx.strokeStyle = '#111a2e';
+    // Subtle Cyber Grid
+    ctx.strokeStyle = '#101728';
     ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += 55) {
+    for (let x = 0; x < width; x += 50) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
       ctx.stroke();
     }
-    for (let y = 0; y < height; y += 38) {
+    for (let y = 0; y < height; y += 36) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
@@ -258,7 +270,9 @@
     minVal = minVal - margin;
     maxVal = maxVal + margin;
 
-    const stepX = width / (maxHistory - 1);
+    // Full-width stretching: ALWAYS spans the canvas smoothly without awkward mid-air cutoffs!
+    const effectiveSpan = Math.max(telemetryHistory.length - 1, 1);
+    const stepX = width / effectiveSpan;
     const getY = (val) => height - (((val - minVal) / (maxVal - minVal || 1)) * (height - 40) + 20);
 
     // Render AST Threshold Warning Line & Shading
@@ -268,9 +282,9 @@
 
       // Shaded Danger Zone
       const isAboveRule = ruleThresholdInfo.operator === '>' || ruleThresholdInfo.operator === '>=';
-      const shadeGradient = ctx.createLinearGradient(0, isAboveRule ? 0 : thY, 0, isAboveRule ? thY : height);
       const isCrit = ruleThresholdInfo.severity === 'CRITICAL';
-      shadeGradient.addColorStop(0, isCrit ? 'rgba(244, 63, 94, 0.12)' : 'rgba(245, 158, 11, 0.1)');
+      const shadeGradient = ctx.createLinearGradient(0, isAboveRule ? 0 : thY, 0, isAboveRule ? thY : height);
+      shadeGradient.addColorStop(0, isCrit ? 'rgba(244, 63, 94, 0.14)' : 'rgba(245, 158, 11, 0.12)');
       shadeGradient.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
 
       ctx.fillStyle = shadeGradient;
@@ -289,7 +303,7 @@
       ctx.lineTo(width, thY);
       ctx.stroke();
 
-      // Threshold Value Label
+      // Threshold Label
       ctx.fillStyle = isCrit ? '#f43f5e' : '#f59e0b';
       ctx.font = 'bold 10px "JetBrains Mono"';
       ctx.textAlign = 'right';
@@ -297,107 +311,116 @@
       ctx.restore();
     }
 
-    // 1. Translucent Gradient Fill Under Raw Curve
+    // Build coordinate pairs
+    const rawPoints = telemetryHistory.map((pt, i) => ({ x: i * stepX, y: getY(pt.value) }));
+    const kalmanPoints = chkKalman.checked ? telemetryHistory.map((pt, i) => ({ x: i * stepX, y: getY(pt.kalman) })) : [];
+
+    // 1. Butter-Smooth Translucent Gradient Fill Under Raw Curve
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, 'rgba(6, 182, 212, 0.32)');
     gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
 
     ctx.beginPath();
-    telemetryHistory.forEach((pt, i) => {
-      const x = i * stepX;
-      const y = getY(pt.value);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.lineTo((telemetryHistory.length - 1) * stepX, height);
-    ctx.lineTo(0, height);
+    drawSmoothSpline(rawPoints);
+    ctx.lineTo(rawPoints[rawPoints.length - 1].x, height);
+    ctx.lineTo(rawPoints[0].x, height);
     ctx.closePath();
     ctx.fillStyle = gradient;
     ctx.fill();
 
-    // 2. Raw Signal Stroke (Cyan)
+    // 2. Butter-Smooth Raw Signal Stroke (Cyan)
     ctx.beginPath();
     ctx.strokeStyle = '#06b6d4';
-    ctx.lineWidth = 2;
-    telemetryHistory.forEach((pt, i) => {
-      const x = i * stepX;
-      const y = getY(pt.value);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
+    ctx.lineWidth = 2.2;
+    drawSmoothSpline(rawPoints);
     ctx.stroke();
 
-    // 3. Kalman Filtered Curve (Neon Emerald)
-    if (chkKalman.checked) {
+    // 3. Butter-Smooth Kalman Filtered Curve (Neon Emerald)
+    if (chkKalman.checked && kalmanPoints.length > 1) {
       ctx.beginPath();
       ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.6;
       ctx.shadowColor = 'rgba(16, 185, 129, 0.6)';
-      ctx.shadowBlur = 8;
-      telemetryHistory.forEach((pt, i) => {
-        const x = i * stepX;
-        const y = getY(pt.kalman);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
+      ctx.shadowBlur = 10;
+      drawSmoothSpline(kalmanPoints);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
 
-    // 4. Latest Reading Glowing Pulse Dot
-    const lastPt = telemetryHistory[telemetryHistory.length - 1];
-    const lastX = (telemetryHistory.length - 1) * stepX;
-    const lastY = getY(lastPt.value);
+    // 4. Sonar Animated Pulse Dot on the Latest Point
+    const lastPoint = rawPoints[rawPoints.length - 1];
+    const pulseTime = (Date.now() / 1000) * 3;
+    const ringRadius = 5 + (Math.sin(pulseTime) * 0.5 + 0.5) * 5;
 
+    // Outer Sonar Ring
+    ctx.beginPath();
+    ctx.arc(lastPoint.x, lastPoint.y, ringRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Inner Solid Dot
     ctx.fillStyle = '#06b6d4';
-    ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+    ctx.shadowColor = 'rgba(6, 182, 212, 0.9)';
     ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+    ctx.arc(lastPoint.x, lastPoint.y, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // 5. Interactive Mouse Crosshair Inspection
-    if (mousePos.isHovering && mousePos.x !== null) {
-      const hoverIndex = Math.round(mousePos.x / stepX);
-      if (hoverIndex >= 0 && hoverIndex < telemetryHistory.length) {
-        const pt = telemetryHistory[hoverIndex];
-        const hX = hoverIndex * stepX;
-        const hY = getY(pt.value);
+    // 5. Stream Paused Visual Indicator on Canvas
+    if (isStreamPaused) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(6, 9, 17, 0.7)';
+      ctx.fillRect(width / 2 - 130, height / 2 - 20, 260, 40);
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(width / 2 - 130, height / 2 - 20, 260, 40);
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 12px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText('⏸ STREAM PAUSED — BUFFER FROZEN', width / 2, height / 2 + 5);
+      ctx.restore();
+    }
 
-        // Vertical Tracking Line
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.moveTo(hX, 0);
-        ctx.lineTo(hX, height);
-        ctx.stroke();
+    // 6. Interactive Mouse Crosshair Inspection
+    if (mousePos.isHovering && mousePos.x !== null && !isStreamPaused) {
+      const hoverIndex = Math.min(Math.max(0, Math.round(mousePos.x / stepX)), telemetryHistory.length - 1);
+      const pt = telemetryHistory[hoverIndex];
+      const hX = hoverIndex * stepX;
+      const hY = getY(pt.value);
 
-        // Point Halo
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(hX, hY, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+      // Vertical Tracking Line
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(hX, 0);
+      ctx.lineTo(hX, height);
+      ctx.stroke();
 
-        // Update Tooltip Box
-        if (crosshairTooltip) {
-          crosshairTooltip.style.display = 'flex';
-          const rect = canvas.getBoundingClientRect();
-          let leftPos = mousePos.x + 15;
-          if (leftPos + 180 > width) leftPos = mousePos.x - 190;
-          crosshairTooltip.style.left = `${leftPos}px`;
-          crosshairTooltip.style.top = `${Math.max(10, mousePos.y - 40)}px`;
+      // Point Halo
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(hX, hY, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
-          ttTime.textContent = new Date(pt.time).toLocaleTimeString();
-          ttRaw.textContent = `${pt.value}`;
-          ttKalman.textContent = `${pt.kalman}`;
-          if (ruleThresholdInfo) {
-            ttThreshold.textContent = `${ruleThresholdInfo.operator} ${ruleThresholdInfo.threshold}`;
-          } else {
-            ttThreshold.textContent = 'None';
-          }
+      // Tooltip Box
+      if (crosshairTooltip) {
+        crosshairTooltip.style.display = 'flex';
+        let leftPos = mousePos.x + 15;
+        if (leftPos + 180 > width) leftPos = mousePos.x - 190;
+        crosshairTooltip.style.left = `${leftPos}px`;
+        crosshairTooltip.style.top = `${Math.max(10, mousePos.y - 40)}px`;
+
+        ttTime.textContent = new Date(pt.time).toLocaleTimeString();
+        ttRaw.textContent = `${pt.value}`;
+        ttKalman.textContent = chkKalman.checked ? `${pt.kalman}` : 'Off';
+        if (ruleThresholdInfo) {
+          ttThreshold.textContent = `${ruleThresholdInfo.operator} ${ruleThresholdInfo.threshold}`;
+        } else {
+          ttThreshold.textContent = 'None';
         }
       }
     } else if (crosshairTooltip) {
@@ -495,13 +518,15 @@
 
   // Process WebSocket Messages
   function handleStreamMessage(msg) {
+    if (isStreamPaused) return; // Completely freeze data ingestion when paused!
+
     packetCounter++;
 
     if (msg.type === 'TELEMETRY_UPDATE') {
       const data = msg.data;
       const val = parseFloat(data.value);
 
-      // If active metric matches, push to main waveform buffer
+      // Main Waveform Buffer
       if (data.metric === activeMetric) {
         const filteredVal = kalman.update(val);
         telemetryHistory.push({ value: val, kalman: filteredVal, time: data.timestamp || Date.now() });
@@ -511,11 +536,11 @@
         updateWaveformStats();
       }
 
-      // Live monotonic Total Ingested counter
+      // Ingested KPI Counter
       const curr = parseInt(kpiIngested.textContent.replace(/,/g, '') || '0', 10);
       kpiIngested.textContent = (curr + 1).toLocaleString();
 
-      // Dispatch to specialized UI sections
+      // UI Component Routing
       updateAssetDisplays(data);
 
     } else if (msg.type === 'ALERT_TRIGGERED') {
@@ -546,7 +571,6 @@
         kpiHostCpu.textContent = `${pct}%`;
         cardCpuVal.textContent = `${pct}%`;
 
-        // Push to CPU sparkline buffer
         sparkBuffers.hostCpu.push(val);
         if (sparkBuffers.hostCpu.length > 25) sparkBuffers.hostCpu.shift();
         renderHostCpuSparkline();
@@ -725,6 +749,8 @@
 
   // Throughput & Latency Monitoring Loop (Runs every 1s)
   setInterval(() => {
+    if (isStreamPaused) return;
+
     const now = Date.now();
     const deltaSec = (now - lastThroughputTime) / 1000;
     if (deltaSec > 0) {
@@ -753,7 +779,7 @@
 
     socket.onopen = () => {
       wsDot.className = 'status-dot connected';
-      wsStatus.textContent = 'STREAMING (WS 4000)';
+      wsStatus.textContent = isStreamPaused ? 'STREAM PAUSED' : 'STREAMING (WS 4000)';
       loadInitialStats();
     };
 
@@ -906,31 +932,34 @@
     }
   }
 
-  // Simulator Toggle
+  // Fully Functional Pause / Resume Stream Button
   if (btnToggleSim) {
     btnToggleSim.addEventListener('click', async () => {
       try {
-        const simIcon = btnToggleSim.querySelector('.sim-icon');
-        const simText = btnToggleSim.querySelector('.sim-text');
-        if (isSimulatorActive) {
-          const res = await fetch('/api/simulator/stop', { method: 'POST' });
-          if (res.ok) {
-            isSimulatorActive = false;
-            if (simIcon) simIcon.textContent = '▶';
-            if (simText) simText.textContent = 'Resume Stream';
-            btnToggleSim.classList.add('paused');
+        if (!isStreamPaused) {
+          // Pause Stream
+          await fetch('/api/simulator/stop', { method: 'POST' });
+          isStreamPaused = true;
+          btnToggleSim.innerHTML = '<span class="sim-icon">▶</span><span class="sim-text">Resume Stream</span>';
+          btnToggleSim.classList.add('paused');
+          if (wsStatus) {
+            wsStatus.textContent = 'STREAM PAUSED';
+            wsDot.className = 'status-dot paused-dot';
           }
+          if (thruputBadge) thruputBadge.textContent = '0.0 pkts/s';
         } else {
-          const res = await fetch('/api/simulator/start', { method: 'POST' });
-          if (res.ok) {
-            isSimulatorActive = true;
-            if (simIcon) simIcon.textContent = '⏹';
-            if (simText) simText.textContent = 'Pause Stream';
-            btnToggleSim.classList.remove('paused');
+          // Resume Stream
+          await fetch('/api/simulator/start', { method: 'POST' });
+          isStreamPaused = false;
+          btnToggleSim.innerHTML = '<span class="sim-icon">⏹</span><span class="sim-text">Pause Stream</span>';
+          btnToggleSim.classList.remove('paused');
+          if (wsStatus) {
+            wsStatus.textContent = 'STREAMING (WS 4000)';
+            wsDot.className = 'status-dot connected';
           }
         }
       } catch (err) {
-        console.error('Simulator toggle error:', err);
+        console.error('Pause/Resume toggle error:', err);
       }
     });
   }
@@ -1069,7 +1098,7 @@
     });
   });
 
-  // Interactive KPI Card Clicks
+  // Interactive KPI Card Clicks (Buttery Smooth Scroll / Chart Switch)
   document.querySelectorAll('.kpi-card').forEach(card => {
     card.addEventListener('click', (e) => {
       const action = e.currentTarget.getAttribute('data-action');

@@ -60,12 +60,12 @@ try {
   console.warn('Default rules load note:', e.message);
 }
 
-function startAllTelemetryFeeds() {
+function startAllTelemetryFeeds(intervalMs = 1200) {
   hostSensor.start();
   if (!isSimulatorActive) {
     isSimulatorActive = true;
     simulator.startEmissionLoop({
-      intervalMs: 1200,
+      intervalMs,
       onEmit: async (batch) => {
         for (const sample of batch) {
           simulatorEmittedCount++;
@@ -76,6 +76,14 @@ function startAllTelemetryFeeds() {
       }
     });
   }
+}
+
+function stopAllTelemetryFeeds() {
+  if (isSimulatorActive) {
+    simulator.stopAll();
+    isSimulatorActive = false;
+  }
+  hostSensor.stop();
 }
 
 // Track Prometheus metrics on pipeline events
@@ -256,33 +264,24 @@ app.get('/api/simulator/status', (req, res) => {
 });
 
 app.post('/api/simulator/start', (req, res) => {
-  if (isSimulatorActive) {
-    return res.json({ success: true, message: 'Simulator already running', isRunning: true });
-  }
-  const intervalMs = parseInt(req.body.intervalMs, 10) || 1000;
-  isSimulatorActive = true;
-  simulator.startEmissionLoop({
-    intervalMs,
-    onEmit: async (batch) => {
-      for (const sample of batch) {
-        simulatorEmittedCount++;
-        try {
-          await pipeline.ingest(sample);
-        } catch (e) {
-          console.warn('Simulator ingestion warning:', e.message);
-        }
-      }
-    }
-  });
-  res.json({ success: true, message: 'IoT Fleet Simulator started', intervalMs, isRunning: true });
+  const intervalMs = parseInt(req.body.intervalMs, 10) || 1200;
+  startAllTelemetryFeeds(intervalMs);
+  res.json({ success: true, message: 'All telemetry feeds started', intervalMs, isRunning: true });
 });
 
 app.post('/api/simulator/stop', (req, res) => {
-  if (isSimulatorActive) {
-    simulator.stopAll();
-    isSimulatorActive = false;
-  }
-  res.json({ success: true, message: 'IoT Fleet Simulator stopped', isRunning: false });
+  stopAllTelemetryFeeds();
+  res.json({ success: true, message: 'All telemetry feeds stopped', isRunning: false });
+});
+
+app.post('/api/stream/pause', (req, res) => {
+  stopAllTelemetryFeeds();
+  res.json({ success: true, message: 'Telemetry stream paused', isRunning: false });
+});
+
+app.post('/api/stream/resume', (req, res) => {
+  startAllTelemetryFeeds();
+  res.json({ success: true, message: 'Telemetry stream resumed', isRunning: true });
 });
 
 app.post('/api/simulator/inject-anomaly', (req, res) => {
