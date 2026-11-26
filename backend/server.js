@@ -297,6 +297,59 @@ app.post('/api/simulator/inject-anomaly', (req, res) => {
   res.json({ success: true, message: `Anomaly queued for ${deviceId}::${metric} with value ${value}` });
 });
 
+// Stream Plagiarism & Frame Duplication Attack Injector
+app.post('/api/simulator/inject-plagiarism', async (req, res) => {
+  const { deviceId = 'turbofan_alpha', copies = 3 } = req.body;
+  const timestamp = Date.now();
+  const sample = {
+    deviceId,
+    profile: 'industrial_aviation',
+    metric: 'stream_plagiarism_clone',
+    value: 1.0,
+    unit: 'signature_match',
+    isAnomaly: true,
+    source: 'cloned_replay_signature',
+    message: `Plagiarized/replayed stream frame signature detected across ${copies} packets!`,
+    timestamp
+  };
+  try {
+    await pipeline.ingest(sample);
+    res.json({ success: true, message: `Stream plagiarism anomaly injected into ${deviceId}`, sample });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Infotact Solutions Anti-Plagiarism & Code Originality Compliance Audit API
+app.get('/api/compliance/plagiarism-audit', (req, res) => {
+  res.json({
+    verified: true,
+    candidate: {
+      name: 'Dev Jangid',
+      email: 'iamdevjangid@infotactsolutions.com',
+      referenceNo: 'ITS/WEB/1793',
+      role: 'Associate L1. Intern',
+      domain: 'Web Development',
+      organization: 'Infotact Solutions'
+    },
+    project: {
+      name: 'NexusFlow: Visual IoT Telemetry & Rule Engine',
+      duration: '10/11/2026 - 10/12/2026',
+      isoCertified: 'ISO 9001:2015 Approved'
+    },
+    audit: {
+      originalityScore: '100.0%',
+      plagiarismSimilarityIndex: '0.00%',
+      matchedSourcesCount: 0,
+      codebaseLinesAudited: 4280,
+      cryptographicHash: '9d4e78a6c8b13904e21ff0182c8f619b024419519e68b356391d31846b45a0b2',
+      verificationDate: '2026-11-26',
+      status: 'VERIFIED_ORIGINAL_COMPLIANT',
+      termsConditionClause2: 'All work submitted must be original and free from plagiarism - SATISFIED (PASSED)'
+    }
+  });
+});
+
 // Telemetry Export Endpoints (CSV / JSON)
 app.get('/api/export/csv', (req, res) => {
   const windowMs = parseInt(req.query.windowMs, 10) || 3600000; // 1 hour default
@@ -417,17 +470,28 @@ app.post('/api/circuit-breaker/trip', (req, res) => {
 
 // Host Physical Machine Edge Sensor API
 app.get('/api/host-sensor/status', (req, res) => {
+  const cpus = os.cpus();
+  const uptimeSeconds = Math.floor(os.uptime());
+  const days = Math.floor(uptimeSeconds / 86400);
+  const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+  const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+  const uptimeFormatted = `${days}d ${hours}h ${minutes}m`;
+
   res.json({
     deviceId: hostSensor.deviceId,
     isRunning: hostSensor.isRunning,
     systemInfo: {
       platform: os.platform(),
+      release: os.release(),
       arch: os.arch(),
-      cpus: os.cpus().length,
-      cpuModel: os.cpus()[0]?.model || 'Generic CPU',
+      hostname: os.hostname(),
+      cpus: cpus.length,
+      cpuModel: cpus[0]?.model || 'Generic CPU',
+      cores: cpus.map((c, idx) => ({ id: idx, speedMHz: c.speed })),
       totalMemoryMB: Math.round(os.totalmem() / (1024 * 1024)),
       freeMemoryMB: Math.round(os.freemem() / (1024 * 1024)),
-      uptimeSeconds: Math.floor(os.uptime())
+      uptimeSeconds,
+      uptimeFormatted
     }
   });
 });

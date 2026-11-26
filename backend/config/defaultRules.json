@@ -64,6 +64,32 @@
       },
       "hysteresisDeadband": 5.0,
       "severity": "WARNING"
+    },
+    {
+      "id": "rule_host_ram_saturation",
+      "name": "Physical Host Edge Gateway RAM Saturation",
+      "metric": "host_ram_used_pct",
+      "condition": {
+        "metric": "host_ram_used_pct",
+        "operator": ">",
+        "threshold": 90.0,
+        "value": 90.0
+      },
+      "hysteresisDeadband": 4.0,
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "rule_stream_plagiarism_clone",
+      "name": "IoT Stream Data Plagiarism & Replay Attack Breached",
+      "metric": "stream_plagiarism_clone",
+      "condition": {
+        "metric": "stream_plagiarism_clone",
+        "operator": ">=",
+        "threshold": 1.0,
+        "value": 1.0
+      },
+      "hysteresisDeadband": 0.5,
+      "severity": "CRITICAL"
     }
   ]
 }

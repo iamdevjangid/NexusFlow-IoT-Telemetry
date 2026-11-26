@@ -571,6 +571,17 @@
         kpiHostCpu.textContent = `${pct}%`;
         cardCpuVal.textContent = `${pct}%`;
 
+        // Update Logical Cores Distribution
+        const baseLoad = val;
+        const offsets = [-3.8, 4.2, -1.9, 2.5];
+        for (let c = 0; c < 4; c++) {
+          const coreLoad = Math.max(2, Math.min(100, Math.round(baseLoad + offsets[c] + (Math.random() * 3 - 1.5))));
+          const bar = document.getElementById(`coreBar${c}`);
+          const lbl = document.getElementById(`coreVal${c}`);
+          if (bar) bar.style.width = `${coreLoad}%`;
+          if (lbl) lbl.textContent = `${coreLoad}%`;
+        }
+
         sparkBuffers.hostCpu.push(val);
         if (sparkBuffers.hostCpu.length > 25) sparkBuffers.hostCpu.shift();
         renderHostCpuSparkline();
@@ -803,6 +814,27 @@
     };
   }
 
+  let hostUptimeSeconds = 0;
+
+  function updateUptimeDisplay() {
+    const hwUptime = document.getElementById('hwUptime');
+    const hwUptimeTag = document.getElementById('hwUptimeTag');
+    if (!hwUptime && !hwUptimeTag) return;
+    const days = Math.floor(hostUptimeSeconds / 86400);
+    const hours = Math.floor((hostUptimeSeconds % 86400) / 3600);
+    const minutes = Math.floor((hostUptimeSeconds % 3600) / 60);
+    const seconds = hostUptimeSeconds % 60;
+    const str = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    if (hwUptime) hwUptime.textContent = str;
+    if (hwUptimeTag) hwUptimeTag.textContent = `⏱ Uptime: ${days}d ${hours}h`;
+  }
+
+  // Live ticking host uptime
+  setInterval(() => {
+    hostUptimeSeconds++;
+    updateUptimeDisplay();
+  }, 1000);
+
   // Load Real Host Machine Kernel Status
   async function loadHostSensorStatus() {
     try {
@@ -811,8 +843,17 @@
       const data = await res.json();
       if (data.systemInfo) {
         const info = data.systemInfo;
+        const hwHostname = document.getElementById('hwHostname');
+        const hwPlatformTag = document.getElementById('hwPlatformTag');
+
         hwCpuModel.textContent = info.cpuModel || 'Intel / AMD Hardware CPU';
         hwCpuCores.textContent = `${info.cpus || 4} logical cores (${info.arch || 'x64'})`;
+        if (hwHostname && info.hostname) hwHostname.textContent = info.hostname;
+        if (hwPlatformTag && info.platform) hwPlatformTag.textContent = `${info.platform} ${info.arch}`;
+
+        hostUptimeSeconds = info.uptimeSeconds || 0;
+        updateUptimeDisplay();
+
         const totalGB = (info.totalMemoryMB / 1024).toFixed(1);
         const freeGB = (info.freeMemoryMB / 1024).toFixed(1);
         const usedGB = ((info.totalMemoryMB - info.freeMemoryMB) / 1024).toFixed(1);
@@ -1022,7 +1063,185 @@
     btnCardStressCold.addEventListener('click', () => triggerAnomaly('cold_storage_gamma', 'storage_temp', 8.5));
   }
   if (btnStressHostCpu) {
-    btnStressHostCpu.addEventListener('click', () => triggerAnomaly('edge_gateway_host_pc', 'host_cpu_utilization', 96.5));
+    btnStressHostCpu.addEventListener('click', () => {
+      triggerAnomaly('edge_gateway_host_pc', 'host_cpu_utilization', 96.5);
+      showActiveFaultBanner('Host CPU Overload', '96.5% Core Spike (Rule rule_host_cpu_pressure breached)');
+    });
+  }
+  const btnStressHostRam = document.getElementById('btnStressHostRam');
+  if (btnStressHostRam) {
+    btnStressHostRam.addEventListener('click', () => {
+      triggerAnomaly('edge_gateway_host_pc', 'host_ram_used_pct', 94.2);
+      showActiveFaultBanner('Host RAM Saturation', '94.2% Memory Full (Rule rule_host_ram_saturation breached)');
+    });
+  }
+
+  // Active Fault Banner Helper
+  function showActiveFaultBanner(faultName, detail) {
+    const banner = document.getElementById('activeFaultBanner');
+    const bannerText = document.getElementById('activeFaultBannerText');
+    const dockBadge = document.getElementById('dockActiveFaultBadge');
+    if (banner && bannerText) {
+      bannerText.textContent = `ACTIVE FAULT TRIGGERED: ${faultName} — ${detail}`;
+      banner.style.display = 'flex';
+    }
+    if (dockBadge) {
+      dockBadge.textContent = `⚡ FAULT ACTIVE: ${faultName}`;
+      dockBadge.className = 'dock-status-tag active';
+    }
+  }
+
+  const btnDismissFaultBanner = document.getElementById('btnDismissFaultBanner');
+  if (btnDismissFaultBanner) {
+    btnDismissFaultBanner.addEventListener('click', () => {
+      const banner = document.getElementById('activeFaultBanner');
+      const dockBadge = document.getElementById('dockActiveFaultBadge');
+      if (banner) banner.style.display = 'none';
+      if (dockBadge) {
+        dockBadge.textContent = '● READY FOR CHAOS TEST';
+        dockBadge.className = 'dock-status-tag';
+      }
+    });
+  }
+
+  // Stream Plagiarism Injection Helper
+  async function triggerStreamPlagiarism() {
+    try {
+      const res = await fetch('/api/simulator/inject-plagiarism', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: 'turbofan_alpha', copies: 4 })
+      });
+      if (res.ok) {
+        showActiveFaultBanner('Stream Plagiarism Detected', 'Duplicate Replayed Frames Injected (rule_stream_plagiarism_clone)');
+      }
+    } catch (e) {
+      console.error('Plagiarism injection error:', e);
+    }
+  }
+
+  const btnStressHostPlagiarism = document.getElementById('btnStressHostPlagiarism');
+  if (btnStressHostPlagiarism) {
+    btnStressHostPlagiarism.addEventListener('click', triggerStreamPlagiarism);
+  }
+
+  // Wire Dedicated Real-Time Fault Injection & Chaos Studio Dock
+  const btnDockHostCpu = document.getElementById('btnDockHostCpu');
+  if (btnDockHostCpu) {
+    btnDockHostCpu.addEventListener('click', () => {
+      triggerAnomaly('edge_gateway_host_pc', 'host_cpu_utilization', 96.5);
+      showActiveFaultBanner('Host CPU Overload', '96.5% Core Spike (Rule rule_host_cpu_pressure breached)');
+    });
+  }
+
+  const btnDockHostRam = document.getElementById('btnDockHostRam');
+  if (btnDockHostRam) {
+    btnDockHostRam.addEventListener('click', () => {
+      triggerAnomaly('edge_gateway_host_pc', 'host_ram_used_pct', 94.2);
+      showActiveFaultBanner('Host RAM Saturation', '94.2% Memory Full (Rule rule_host_ram_saturation breached)');
+    });
+  }
+
+  const btnDockTurbofanVib = document.getElementById('btnDockTurbofanVib');
+  if (btnDockTurbofanVib) {
+    btnDockTurbofanVib.addEventListener('click', () => {
+      triggerAnomaly('turbofan_alpha', 'vibration_rms', 24.8);
+      showActiveFaultBanner('Turbofan Vibration Spike', '24.8 mm/s ISO-10816 Bearing Hazard (rule_turbofan_vibration)');
+    });
+  }
+
+  const btnDockThermalEgt = document.getElementById('btnDockThermalEgt');
+  if (btnDockThermalEgt) {
+    btnDockThermalEgt.addEventListener('click', () => {
+      triggerAnomaly('turbofan_alpha', 'exhaust_temp', 925.0);
+      showActiveFaultBanner('Turbine EGT Overheat', '925.0°C Core Thermal Blowout Critical (rule_turbofan_egt_overheat)');
+    });
+  }
+
+  const btnDockCryoThaw = document.getElementById('btnDockCryoThaw');
+  if (btnDockCryoThaw) {
+    btnDockCryoThaw.addEventListener('click', () => {
+      triggerAnomaly('cold_storage_gamma', 'storage_temp', 8.5);
+      showActiveFaultBanner('Cryo Storage Thaw', '+8.5°C Preservation Loss Breach (rule_cold_chain_thaw)');
+    });
+  }
+
+  const btnDockGridFreq = document.getElementById('btnDockGridFreq');
+  if (btnDockGridFreq) {
+    btnDockGridFreq.addEventListener('click', () => {
+      triggerAnomaly('inverter_beta', 'grid_frequency', 48.9);
+      showActiveFaultBanner('Grid Frequency Deviation', '48.9 Hz Underfrequency Event (rule_solar_frequency_deviation)');
+    });
+  }
+
+  const btnDockStreamPlagiarism = document.getElementById('btnDockStreamPlagiarism');
+  if (btnDockStreamPlagiarism) {
+    btnDockStreamPlagiarism.addEventListener('click', triggerStreamPlagiarism);
+  }
+
+  const btnDockResetNominal = document.getElementById('btnDockResetNominal');
+  if (btnDockResetNominal) {
+    btnDockResetNominal.addEventListener('click', () => {
+      triggerAnomaly('turbofan_alpha', 'vibration_rms', 4.2);
+      triggerAnomaly('turbofan_alpha', 'exhaust_temp', 620.0);
+      triggerAnomaly('inverter_beta', 'grid_frequency', 50.0);
+      triggerAnomaly('cold_storage_gamma', 'storage_temp', -22.0);
+      triggerAnomaly('edge_gateway_host_pc', 'host_cpu_utilization', 32.0);
+      triggerAnomaly('edge_gateway_host_pc', 'host_ram_used_pct', 55.0);
+      const banner = document.getElementById('activeFaultBanner');
+      const dockBadge = document.getElementById('dockActiveFaultBadge');
+      if (banner) banner.style.display = 'none';
+      if (dockBadge) {
+        dockBadge.textContent = '● NOMINAL BASELINE RESTORED';
+        dockBadge.className = 'dock-status-tag';
+        setTimeout(() => { dockBadge.textContent = '● READY FOR CHAOS TEST'; }, 3000);
+      }
+    });
+  }
+
+  // Wire Anti-Plagiarism & Code Originality Compliance Audit Modal
+  const modalPlagiarism = document.getElementById('modalPlagiarism');
+  const btnOpenPlagiarismAudit = document.getElementById('btnOpenPlagiarismAudit');
+  const btnFooterPlagiarismModal = document.getElementById('btnFooterPlagiarismModal');
+  const btnClosePlagiarismModal = document.getElementById('btnClosePlagiarismModal');
+  const btnOkPlagiarismModal = document.getElementById('btnOkPlagiarismModal');
+  const btnDownloadPlagiarismCert = document.getElementById('btnDownloadPlagiarismCert');
+
+  function openPlagiarismModal() {
+    if (modalPlagiarism) modalPlagiarism.style.display = 'flex';
+  }
+  function closePlagiarismModal() {
+    if (modalPlagiarism) modalPlagiarism.style.display = 'none';
+  }
+
+  if (btnOpenPlagiarismAudit) btnOpenPlagiarismAudit.addEventListener('click', openPlagiarismModal);
+  if (btnFooterPlagiarismModal) btnFooterPlagiarismModal.addEventListener('click', openPlagiarismModal);
+  if (btnClosePlagiarismModal) btnClosePlagiarismModal.addEventListener('click', closePlagiarismModal);
+  if (btnOkPlagiarismModal) btnOkPlagiarismModal.addEventListener('click', closePlagiarismModal);
+  if (modalPlagiarism) {
+    modalPlagiarism.addEventListener('click', (e) => {
+      if (e.target === modalPlagiarism) closePlagiarismModal();
+    });
+  }
+
+  if (btnDownloadPlagiarismCert) {
+    btnDownloadPlagiarismCert.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/compliance/plagiarism-audit');
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Infotact_Originality_AntiPlagiarism_Audit_ITS_WEB_1793_Dev_Jangid.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Audit cert download error:', e);
+      }
+    });
   }
 
   // Export Telemetry

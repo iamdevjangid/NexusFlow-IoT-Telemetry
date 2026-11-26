@@ -28,4 +28,27 @@ test('Server API Extensions - Rule deletion and telemetry export', async (t) => 
   assert.ok(Array.isArray(samples), 'getAllSamples returns array');
   assert.ok(samples.length >= 2, 'getAllSamples contains at least 2 recorded samples');
   assert.strictEqual(samples[0].deviceId, 'device_test_1');
+
+  // Test Stream Plagiarism rule ingestion
+  pipeline.registerRule({
+    id: 'rule_stream_plagiarism_clone',
+    name: 'IoT Stream Data Plagiarism Breached',
+    condition: { metric: 'stream_plagiarism_clone', operator: '>=', threshold: 1.0 },
+    severity: 'CRITICAL'
+  });
+
+  let detectedAlert = null;
+  pipeline.on('alert', (alert) => {
+    if (alert.ruleId === 'rule_stream_plagiarism_clone') detectedAlert = alert;
+  });
+
+  await pipeline.ingest({
+    deviceId: 'turbofan_alpha',
+    metric: 'stream_plagiarism_clone',
+    value: 1.0,
+    timestamp: Date.now()
+  });
+
+  assert.ok(detectedAlert, 'Plagiarism alert was triggered');
+  assert.strictEqual(detectedAlert.severity, 'CRITICAL');
 });
