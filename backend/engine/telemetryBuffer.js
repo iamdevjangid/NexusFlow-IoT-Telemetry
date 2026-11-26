@@ -119,6 +119,29 @@ class TelemetryBuffer {
     }
   }
 
+  /**
+   * Retrieve all samples across all devices and metrics within the time window.
+   */
+  getAllSamples(windowMs = 3600000, now = Date.now()) {
+    const cutoff = now - windowMs;
+    const all = [];
+    for (const [deviceId, metrics] of this.deviceBuffers.entries()) {
+      for (const [metric, series] of metrics.entries()) {
+        for (const item of series) {
+          if (item.timestamp >= cutoff) {
+            all.push({
+              deviceId,
+              metric,
+              value: item.value,
+              timestamp: item.timestamp
+            });
+          }
+        }
+      }
+    }
+    return all.sort((a, b) => a.timestamp - b.timestamp);
+  }
+
   _getSeries(deviceId, metric) {
     const deviceMetrics = this.deviceBuffers.get(deviceId);
     if (!deviceMetrics) return null;

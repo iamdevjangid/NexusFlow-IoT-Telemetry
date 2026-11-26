@@ -216,6 +216,27 @@
     kpiRules.textContent = stats.activeRules ?? 0;
   }
 
+  // Rule Policy & Simulator DOM Elements
+  const btnToggleSim = document.getElementById('btnToggleSim');
+  const btnAnomalyVibration = document.getElementById('btnAnomalyVibration');
+  const btnAnomalyThermal = document.getElementById('btnAnomalyThermal');
+  const btnAnomalyCold = document.getElementById('btnAnomalyCold');
+  const btnExportCSV = document.getElementById('btnExportCSV');
+  const btnExportJSON = document.getElementById('btnExportJSON');
+  const ruleTableBody = document.getElementById('ruleTableBody');
+  const ruleCountBadge = document.getElementById('ruleCountBadge');
+  const createRuleForm = document.getElementById('createRuleForm');
+  const cbBadge = document.getElementById('cbBadge');
+  const cbState = document.getElementById('cbState');
+  const cbFailures = document.getElementById('cbFailures');
+  const dlqCount = document.getElementById('dlqCount');
+  const btnTripCB = document.getElementById('btnTripCB');
+  const btnResetCB = document.getElementById('btnResetCB');
+  const btnRetryDLQ = document.getElementById('btnRetryDLQ');
+  const btnPurgeDLQ = document.getElementById('btnPurgeDLQ');
+
+  let isSimulatorRunning = false;
+
   async function loadInitialStats() {
     try {
       const res = await fetch('/api/metrics/summary');
@@ -223,14 +244,199 @@
         const stats = await res.json();
         updateKPIs(stats);
       }
-      const rulesRes = await fetch('/api/rules');
-      if (rulesRes.ok) {
-        const rules = await rulesRes.json();
-        kpiRules.textContent = rules.length;
-      }
+      await loadRules();
+      await loadResilienceStatus();
     } catch (e) {
       // Offline fallback
     }
+  }
+
+  // Load and render dynamic rules
+  async function loadRules() {
+    try {
+      const res = await fetch('/api/rules');
+      if (!res.ok) return;
+      const data = await res.json();
+      const rules = data.rules || [];
+      kpiRules.textContent = rules.length;
+      if (ruleCountBadge) ruleCountBadge.textContent = `${rules.length} Policies`;
+
+      if (ruleTableBody) {
+        if (rules.length === 0) {
+          ruleTableBody.innerHTML = '<tr><td colspan="6" class="empty-row">No active AST rules registered.</td></tr>';
+          return;
+        }
+        ruleTableBody.innerHTML = rules.map(r => `
+          <tr>
+            <td><strong>${r.id}</strong></td>
+            <td><code>${r.condition?.metric || r.metric || '*'}</code></td>
+            <td><code>${r.condition?.operator || r.operator || '>'} ${r.condition?.threshold ?? r.threshold ?? ''}</code></td>
+            <td>${r.hysteresisDeadband || 0}</td>
+            <td><span class="badge ${r.severity === 'CRITICAL' ? 'danger' : (r.severity === 'WARNING' ? 'warning' : 'success')}">${r.severity || 'INFO'}</span></td>
+            <td><button class="btn-del-rule" data-rule-id="${r.id}" title="Unregister rule">🗑️</button></td>
+          </tr>
+        `).join('');
+
+        // Wire delete buttons
+        ruleTableBody.querySelectorAll('.btn-del-rule').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const ruleId = e.currentTarget.getAttribute('data-rule-id');
+            if (!ruleId) return;
+            try {
+              const delRes = await fetch(`/api/rules/${ruleId}`, { method: 'DELETE' });
+              if (delRes.ok) {
+                await loadRules();
+              }
+            } catch (err) {
+              console.error('Failed to delete rule:', err);
+            }
+          });
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load rules:', err);
+    }
+  }
+
+  // Load Resilience (Circuit Breaker & DLQ) status
+  async function loadResilienceStatus() {
+    try {
+      const cbRes = await fetch('/api/circuit-breaker/status');
+      if (cbRes.ok) {
+        const cbData = await cbRes.json();
+        if (cbState) cbState.textContent = cbData.state;
+        if (cbFailures) cbFailures.textContent = `${cbData.failureCount} / ${cbData.failureThreshold}`;
+        if (cbBadge) {
+          cbBadge.textContent = `${cbData.state} (${cbData.state === 'CLOSED' ? 'Nominal' : 'Protected'})`;
+          cbBadge.className = `badge ${cbData.state === 'CLOSED' ? 'success' : 'danger'}`;
+        }
+      }
+
+      const dlqRes = await fetch('/api/dlq');
+      if (dlqRes.ok) {
+        const dlqData = await dlqRes.json();
+        if (dlqCount) dlqCount.textContent = `${dlqData.totalCount || 0} packets`;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch resilience status:', err);
+    }
+  }
+
+  // Simulator Toggle
+  if (btnToggleSim) {
+    btnToggleSim.addEventListener('click', async () => {
+      try {
+        if (!isSimulatorRunning) {
+          const res = await fetch('/api/simulator/start', { method: 'POST' });
+          if (res.ok) {
+            isSimulatorRunning = true;
+            btnToggleSim.textContent = '⏹ Stop Fleet Simulator';
+            btnToggleSim.classList.add('running');
+          }
+        } else {
+          const res = await fetch('/api/simulator/stop', { method: 'POST' });
+          if (res.ok) {
+            isSimulatorRunning = false;
+            btnToggleSim.textContent = '▶ Start Fleet Simulator';
+            btnToggleSim.classList.remove('running');
+          }
+        }
+      } catch (err) {
+        console.error('Simulator toggle error:', err);
+      }
+    });
+  }
+
+  // Anomaly Injection Handlers
+  async function injectAnomaly(deviceId, metric, value) {
+    try {
+      await fetch('/api/simulator/inject-anomaly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId, metric, value })
+      });
+    } catch (err) {
+      console.error('Anomaly injection error:', err);
+    }
+  }
+
+  if (btnAnomalyVibration) {
+    btnAnomalyVibration.addEventListener('click', () => injectAnomaly('turbofan_alpha', 'vibration_rms', 24.8));
+  }
+  if (btnAnomalyThermal) {
+    btnAnomalyThermal.addEventListener('click', () => injectAnomaly('turbofan_alpha', 'exhaust_temp', 925.0));
+  }
+  if (btnAnomalyCold) {
+    btnAnomalyCold.addEventListener('click', () => injectAnomaly('cold_storage_gamma', 'storage_temp', 8.5));
+  }
+
+  // Export Telemetry
+  if (btnExportCSV) {
+    btnExportCSV.addEventListener('click', () => { window.location.href = '/api/export/csv'; });
+  }
+  if (btnExportJSON) {
+    btnExportJSON.addEventListener('click', () => { window.location.href = '/api/export/json'; });
+  }
+
+  // Create Custom AST Rule Form
+  if (createRuleForm) {
+    createRuleForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('ruleId').value.trim();
+      const metric = document.getElementById('ruleMetric').value.trim();
+      const operator = document.getElementById('ruleOperator').value;
+      const threshold = parseFloat(document.getElementById('ruleThreshold').value);
+      const deadband = parseFloat(document.getElementById('ruleDeadband').value) || 0;
+      const severity = document.getElementById('ruleSeverity').value;
+
+      const newRule = {
+        id,
+        name: `Dynamic ${metric} Policy`,
+        severity,
+        hysteresisDeadband: deadband,
+        condition: { metric, operator, threshold }
+      };
+
+      try {
+        const res = await fetch('/api/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRule)
+        });
+        if (res.ok) {
+          createRuleForm.reset();
+          await loadRules();
+        }
+      } catch (err) {
+        console.error('Rule creation failed:', err);
+      }
+    });
+  }
+
+  // Circuit Breaker & DLQ Controls
+  if (btnTripCB) {
+    btnTripCB.addEventListener('click', async () => {
+      await fetch('/api/circuit-breaker/trip', { method: 'POST' });
+      await loadResilienceStatus();
+    });
+  }
+  if (btnResetCB) {
+    btnResetCB.addEventListener('click', async () => {
+      await fetch('/api/circuit-breaker/reset', { method: 'POST' });
+      await loadResilienceStatus();
+    });
+  }
+  if (btnRetryDLQ) {
+    btnRetryDLQ.addEventListener('click', async () => {
+      await fetch('/api/dlq');
+      await loadResilienceStatus();
+    });
+  }
+  if (btnPurgeDLQ) {
+    btnPurgeDLQ.addEventListener('click', async () => {
+      await fetch('/api/dlq?reason=manual_purge', { method: 'DELETE' });
+      await loadResilienceStatus();
+    });
   }
 
   // Event Listeners

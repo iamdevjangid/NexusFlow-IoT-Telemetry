@@ -11,6 +11,8 @@ const { EventReplayEngine } = require('./engine/eventReplay');
 const { DeadLetterQueue } = require('./engine/deadLetterQueue');
 const { Downsampler } = require('./engine/downsampler');
 const { CircuitBreaker } = require('./engine/circuitBreaker');
+const { DeviceSimulator, DEVICE_PROFILES } = require('./simulator/deviceSimulator');
+const { TelemetryExporter } = require('./engine/telemetryExporter');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +26,9 @@ const exporter = new MetricExporter();
 const replayEngine = new EventReplayEngine();
 const dlq = new DeadLetterQueue();
 const circuitBreaker = new CircuitBreaker();
+const simulator = new DeviceSimulator();
+let isSimulatorActive = false;
+let simulatorEmittedCount = 0;
 
 // Track Prometheus metrics on pipeline events
 pipeline.on('telemetry', (event) => {
@@ -182,6 +187,85 @@ app.post('/api/rules', (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+app.delete('/api/rules/:id', (req, res) => {
+  try {
+    pipeline.unregisterRule(req.params.id);
+    res.json({ success: true, message: `Rule ${req.params.id} unregistered` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// IoT Fleet Simulator Controller
+app.get('/api/simulator/status', (req, res) => {
+  res.json({
+    isRunning: isSimulatorActive,
+    emittedCount: simulatorEmittedCount,
+    profiles: Object.keys(DEVICE_PROFILES)
+  });
+});
+
+app.post('/api/simulator/start', (req, res) => {
+  if (isSimulatorActive) {
+    return res.json({ success: true, message: 'Simulator already running', isRunning: true });
+  }
+  const intervalMs = parseInt(req.body.intervalMs, 10) || 1000;
+  isSimulatorActive = true;
+  simulator.startEmissionLoop({
+    intervalMs,
+    onEmit: async (batch) => {
+      for (const sample of batch) {
+        simulatorEmittedCount++;
+        try {
+          await pipeline.ingest(sample);
+        } catch (e) {
+          console.warn('Simulator ingestion warning:', e.message);
+        }
+      }
+    }
+  });
+  res.json({ success: true, message: 'IoT Fleet Simulator started', intervalMs, isRunning: true });
+});
+
+app.post('/api/simulator/stop', (req, res) => {
+  if (isSimulatorActive) {
+    simulator.stopAll();
+    isSimulatorActive = false;
+  }
+  res.json({ success: true, message: 'IoT Fleet Simulator stopped', isRunning: false });
+});
+
+app.post('/api/simulator/inject-anomaly', (req, res) => {
+  const { deviceId, metric, value } = req.body;
+  if (!deviceId || !metric || value === undefined) {
+    return res.status(400).json({ error: 'deviceId, metric, and value are required' });
+  }
+  simulator.injectAnomaly(deviceId, metric, parseFloat(value));
+  res.json({ success: true, message: `Anomaly queued for ${deviceId}::${metric} with value ${value}` });
+});
+
+// Telemetry Export Endpoints (CSV / JSON)
+app.get('/api/export/csv', (req, res) => {
+  const windowMs = parseInt(req.query.windowMs, 10) || 3600000; // 1 hour default
+  const samples = pipeline.buffer.getAllSamples ? pipeline.buffer.getAllSamples(windowMs) : [];
+  const csv = TelemetryExporter.toCSV(samples);
+  res.header('Content-Type', 'text/csv');
+  res.attachment(`nexusflow-telemetry-${Date.now()}.csv`);
+  res.send(csv);
+});
+
+app.get('/api/export/json', (req, res) => {
+  const windowMs = parseInt(req.query.windowMs, 10) || 3600000;
+  const samples = pipeline.buffer.getAllSamples ? pipeline.buffer.getAllSamples(windowMs) : [];
+  const json = TelemetryExporter.toFormattedJSON(samples, {
+    generator: 'NexusFlow IoT Engine',
+    deviceCount: pipeline.getDevices().length
+  });
+  res.header('Content-Type', 'application/json');
+  res.attachment(`nexusflow-telemetry-${Date.now()}.json`);
+  res.send(json);
 });
 
 // Alert history

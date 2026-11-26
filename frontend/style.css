@@ -391,3 +391,164 @@ input:focus, select:focus {
   padding: 4px 10px;
   font-size: 12px;
 }
+
+/* Simulator & Anomaly Navigation Controls */
+.sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-sim {
+  background: linear-gradient(135deg, #059669, #047857);
+  border: 1px solid #10b981;
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-sim.running {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.anomaly-btn-group, .export-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-anomaly {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.btn-anomaly:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Middle Section: Rule Engine & Resilience */
+.middle-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .middle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rule-content-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .rule-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rule-table-container {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.rule-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: rgba(17, 24, 39, 0.5);
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.form-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.btn-del-rule {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.btn-del-rule:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Resilience Panel */
+.resilience-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resilience-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: rgba(17, 24, 39, 0.5);
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.stat-label {
+  color: var(--text-muted);
+}
+
+.stat-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-val.warning {
+  color: var(--accent-amber);
+}
+
+.resilience-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
