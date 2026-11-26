@@ -7,60 +7,109 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-layout">
-    <!-- Top Cyber-Industrial Navigation Bar -->
+    <!-- Top Cyber-Industrial Cockpit Navigation Bar -->
     <header class="navbar">
       <div class="nav-brand">
-        <div class="brand-logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
+        <div class="brand-logo-wrap">
+          <div class="brand-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="brand-radar-ring"></div>
         </div>
         <div class="brand-info">
           <div class="brand-title-row">
             <h1>NexusFlow</h1>
-            <span class="version-tag">v2.4-PROD</span>
+            <span class="version-tag">ENTERPRISE v2.5</span>
+            <span class="env-pill">EDGE-CLUSTER</span>
           </div>
-          <span class="brand-subtitle">Visual IoT Telemetry, AST Rule Engine & Edge Gateway</span>
+          <span class="brand-subtitle">Mission-Critical IoT Stream Telemetry, AST Rule Engine & Edge Gateway</span>
         </div>
       </div>
       
-      <div class="nav-status">
-        <!-- Live Stream Stats -->
-        <div class="telemetry-telemetry-stats">
-          <span class="hud-pill" id="thruputBadge" title="Current stream ingestion rate">⚡ 15.0 pkts/s</span>
-          <span class="hud-pill latency-pill" id="latencyBadge" title="AST rule evaluation pipeline latency">⏱️ 0.6ms AST</span>
-        </div>
-
-        <!-- Simulator & Fault-Injection Actions -->
-        <div class="sim-controls">
-          <button id="btnToggleSim" class="btn btn-sm btn-sim" title="Toggle automatic fleet telemetry streaming">⏹ Pause Stream</button>
-          
-          <div class="anomaly-btn-group">
-            <button id="btnAnomalyHostCpu" class="btn btn-sm btn-anomaly-host" title="Inject severe host CPU overload spike">💻 Host CPU Spike</button>
-            <button id="btnAnomalyVibration" class="btn btn-sm btn-anomaly" title="Inject ISO-10816 bearing vibration breach">⚡ Vib Spike</button>
-            <button id="btnAnomalyThermal" class="btn btn-sm btn-anomaly" title="Inject turbine exhaust overheat breach">🔥 Overheat</button>
-            <button id="btnAnomalyCold" class="btn btn-sm btn-anomaly" title="Inject cryogenic cold chain thaw breach">❄ Cold Breach</button>
-          </div>
-
-          <div class="export-btn-group">
-            <button id="btnExportCSV" class="btn btn-sm btn-secondary" title="Export historical telemetry as CSV">📥 CSV</button>
-            <button id="btnExportJSON" class="btn btn-sm btn-secondary" title="Export historical telemetry as JSON">📥 JSON</button>
-          </div>
-        </div>
-
-        <div class="status-indicator">
+      <!-- Center Stream Velocity Capsule -->
+      <div class="stream-capsule">
+        <div class="capsule-led">
           <span class="status-dot connected" id="wsDot"></span>
-          <span class="status-text" id="wsStatus">LIVE WEBSOCKET CONNECTED</span>
+          <span class="capsule-text" id="wsStatus">STREAMING (WS 4000)</span>
         </div>
-        <a href="/metrics" target="_blank" class="badge-link" title="Open Prometheus OpenMetrics text exposition endpoint">/metrics</a>
+        <div class="capsule-divider"></div>
+        <div class="capsule-metric" title="Current stream ingestion rate">
+          <span class="cap-label">RATE</span>
+          <strong class="cap-val cyan" id="thruputBadge">15.0 pkts/s</strong>
+        </div>
+        <div class="capsule-divider"></div>
+        <div class="capsule-metric" title="AST rule evaluation pipeline latency">
+          <span class="cap-label">LATENCY</span>
+          <strong class="cap-val emerald" id="latencyBadge">0.6ms AST</strong>
+        </div>
+      </div>
+
+      <!-- Right Control Action Tray -->
+      <div class="nav-controls-tray">
+        <button id="btnToggleSim" class="btn btn-sm btn-sim" title="Toggle automatic fleet telemetry streaming">
+          <span class="sim-icon">⏹</span>
+          <span class="sim-text">Pause Stream</span>
+        </button>
+
+        <!-- Anomaly Stress Inject Dropdown / Button Group -->
+        <div class="quick-inject-menu">
+          <button class="btn btn-sm btn-anomaly-main" id="btnAnomalyMenuToggle">
+            <span>⚡ Fault Injection</span>
+            <span class="dropdown-arrow">▾</span>
+          </button>
+          <div class="quick-inject-dropdown" id="quickInjectDropdown">
+            <div class="dropdown-header">SIMULATE REAL THRESHOLD BREACHES</div>
+            <button id="btnAnomalyHostCpu" class="dropdown-item violet">
+              <span class="item-icon">💻</span>
+              <div class="item-info">
+                <strong>Host CPU Overload (96.5%)</strong>
+                <span>Triggers rule_host_cpu_pressure</span>
+              </div>
+            </button>
+            <button id="btnAnomalyVibration" class="dropdown-item rose">
+              <span class="item-icon">⚡</span>
+              <div class="item-info">
+                <strong>Turbofan Vibration Spike (24.8 mm/s)</strong>
+                <span>ISO-10816 Bearing Hazard Breach</span>
+              </div>
+            </button>
+            <button id="btnAnomalyThermal" class="dropdown-item amber">
+              <span class="item-icon">🔥</span>
+              <div class="item-info">
+                <strong>Turbine EGT Overheat (925°C)</strong>
+                <span>Core Exhaust Gas Critical Alert</span>
+              </div>
+            </button>
+            <button id="btnAnomalyCold" class="dropdown-item cyan">
+              <span class="item-icon">❄️</span>
+              <div class="item-info">
+                <strong>Cold Storage Thaw (+8.5°C)</strong>
+                <span>Biotech Cryo Preservation Breach</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Export Group -->
+        <div class="btn-group">
+          <button id="btnExportCSV" class="btn btn-sm btn-secondary" title="Export historical telemetry as CSV">📥 CSV</button>
+          <button id="btnExportJSON" class="btn btn-sm btn-secondary" title="Export historical telemetry as JSON">📥 JSON</button>
+        </div>
+
+        <a href="/metrics" target="_blank" class="badge-link" title="Open Prometheus OpenMetrics text exposition endpoint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          /metrics
+        </a>
       </div>
     </header>
 
-    <!-- Real Hardware Edge Gateway Highlight Banner (100% Genuine OS Kernel Sensor) -->
+    <!-- Physical Host Hardware Edge Gateway (100% Genuine OS Kernel Sensor) -->
     <section class="host-hardware-card">
       <div class="host-hw-left">
         <div class="host-hw-header">
@@ -69,153 +118,212 @@
             PHYSICAL HOST EDGE GATEWAY (LIVE HARDWARE)
           </div>
           <span class="verified-badge">✓ 100% REAL KERNEL METRICS</span>
+          <span class="hw-platform-tag" id="hwPlatformTag">Windows 11 x64</span>
         </div>
         <div class="host-hw-meta">
           <div class="hw-meta-item">
-            <span class="hw-meta-label">Node ID:</span>
+            <span class="hw-meta-label">Node Identifier</span>
             <span class="hw-meta-val" id="hwNodeId">edge_gateway_host_pc</span>
           </div>
           <div class="hw-meta-item">
-            <span class="hw-meta-label">CPU Model:</span>
-            <span class="hw-meta-val" id="hwCpuModel">Detecting Processor...</span>
+            <span class="hw-meta-label">Physical Processor</span>
+            <span class="hw-meta-val" id="hwCpuModel">Intel(R) Core(TM) i5-7300U CPU @ 2.60GHz</span>
           </div>
           <div class="hw-meta-item">
-            <span class="hw-meta-label">Cores & Arch:</span>
-            <span class="hw-meta-val" id="hwCpuCores">-- cores (x64)</span>
+            <span class="hw-meta-label">Topology & Cores</span>
+            <span class="hw-meta-val" id="hwCpuCores">4 logical cores (x64)</span>
           </div>
           <div class="hw-meta-item">
-            <span class="hw-meta-label">Node RSS Memory:</span>
-            <span class="hw-meta-val" id="hwNodeRss">-- MB</span>
+            <span class="hw-meta-label">Node.js Engine RSS</span>
+            <span class="hw-meta-val" id="hwNodeRss">47.2 MB</span>
           </div>
+        </div>
+        <div class="host-hw-actions">
+          <button id="btnFocusHost" class="btn btn-xs btn-outline-cyan" title="Chart Host CPU telemetry">
+            🔍 Chart Host CPU
+          </button>
+          <button id="btnFocusHostRam" class="btn btn-xs btn-outline-cyan" title="Chart Host RAM telemetry">
+            🔍 Chart Host RAM
+          </button>
+          <button id="btnStressHostCpu" class="btn btn-xs btn-outline-violet" title="Inject 96.5% CPU load spike into host sensor">
+            ⚡ Stress Host CPU (96%)
+          </button>
         </div>
       </div>
 
       <div class="host-hw-right">
-        <!-- Live CPU Gauge Bar -->
+        <!-- Live CPU Gauge Meter -->
         <div class="hw-meter-group">
           <div class="hw-meter-label-row">
-            <span>REAL HOST CPU UTILIZATION</span>
-            <strong id="hwCpuPercentLabel">--%</strong>
+            <div class="meter-title-wrap">
+              <span class="meter-indicator cpu-dot"></span>
+              <span>REAL HOST CPU UTILIZATION</span>
+            </div>
+            <strong id="hwCpuPercentLabel">0.0%</strong>
           </div>
           <div class="hw-meter-track">
             <div class="hw-meter-fill cpu-fill" id="hwCpuBar" style="width: 0%"></div>
           </div>
-          <span class="hw-meter-sub">OS tick delta across all logical cores</span>
+          <div class="hw-meter-footer">
+            <span class="hw-meter-sub">OS tick delta across all logical cores</span>
+            <span class="hw-meter-trend" id="hwCpuTrend">● Stable</span>
+          </div>
         </div>
 
-        <!-- Live Physical RAM Gauge Bar -->
+        <!-- Live Physical RAM Gauge Meter -->
         <div class="hw-meter-group">
           <div class="hw-meter-label-row">
-            <span>PHYSICAL SYSTEM RAM USAGE</span>
-            <strong id="hwRamLabel">--%</strong>
+            <div class="meter-title-wrap">
+              <span class="meter-indicator ram-dot"></span>
+              <span>PHYSICAL SYSTEM RAM USAGE</span>
+            </div>
+            <strong id="hwRamLabel">0.0%</strong>
           </div>
           <div class="hw-meter-track">
             <div class="hw-meter-fill ram-fill" id="hwRamBar" style="width: 0%"></div>
           </div>
-          <span class="hw-meter-sub" id="hwRamSub">Used: -- GB | Total: -- GB</span>
+          <div class="hw-meter-footer">
+            <span class="hw-meter-sub" id="hwRamSub">Used: -- GB | Free: -- GB | Total: -- GB</span>
+            <span class="hw-meter-trend" id="hwRamTrend">● Nominal</span>
+          </div>
         </div>
+      </div>
 
-        <button id="btnFocusHost" class="btn btn-sm btn-outline-cyan" title="Plot Host PC metrics on the waveform chart">
-          🔍 Chart Host Telemetry
-        </button>
+      <!-- Mini Live CPU Sparkline Box -->
+      <div class="host-hw-sparkline-box">
+        <div class="spark-header">
+          <span>HOST CPU TRAJECTORY (30s)</span>
+          <span class="spark-live-tag">LIVE</span>
+        </div>
+        <canvas id="hostCpuSparkline" width="180" height="48"></canvas>
       </div>
     </section>
 
-    <!-- KPI HUD Cards (6 metrics) -->
+    <!-- KPI HUD Cards (6 interactive cards with mini sparklines) -->
     <section class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap cyan">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
+      <!-- KPI 1: Ingested -->
+      <div class="kpi-card" data-action="highlight-stream" title="Click to view stream throughput details">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap cyan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill positive" id="kpiIngestRatePill">+15.1/s</div>
         </div>
         <div class="kpi-data">
           <span class="kpi-label">TOTAL INGESTED</span>
           <div class="kpi-value cyan-glow" id="kpiIngested">0</div>
-          <span class="kpi-delta">Stream messages</span>
+          <span class="kpi-delta">Stream messages processed</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkIngested" viewBox="0 0 100 24"></svg>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap emerald">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
-            <line x1="6" y1="6" x2="6.01" y2="6"/>
-            <line x1="6" y1="18" x2="6.01" y2="18"/>
-          </svg>
+      <!-- KPI 2: Active Devices -->
+      <div class="kpi-card" data-action="scroll-fleet" title="Click to inspect Connected Asset Fleet">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap emerald">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+              <line x1="6" y1="6" x2="6.01" y2="6"/>
+              <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill success">100% ONLINE</div>
         </div>
         <div class="kpi-data">
-          <span class="kpi-label">ACTIVE DEVICES</span>
-          <div class="kpi-value emerald-glow" id="kpiDevices">0</div>
-          <span class="kpi-delta">Edge gateway & fleet</span>
+          <span class="kpi-label">ACTIVE EDGE NODES</span>
+          <div class="kpi-value emerald-glow" id="kpiDevices">4</div>
+          <span class="kpi-delta">1 Host Gateway + 3 Industrial</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkDevices" viewBox="0 0 100 24"></svg>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap violet">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-            <rect x="9" y="9" width="6" height="6"/>
-            <line x1="9" y1="1" x2="9" y2="4"/>
-            <line x1="15" y1="1" x2="15" y2="4"/>
-            <line x1="9" y1="20" x2="9" y2="23"/>
-            <line x1="15" y1="20" x2="15" y2="23"/>
-          </svg>
+      <!-- KPI 3: Real Host CPU -->
+      <div class="kpi-card" data-action="chart-host-cpu" title="Click to chart Real Host CPU">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap violet">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill violet-pill">REAL KERNEL</div>
         </div>
         <div class="kpi-data">
           <span class="kpi-label">REAL HOST CPU</span>
           <div class="kpi-value violet-glow" id="kpiHostCpu">0.0%</div>
-          <span class="kpi-delta">Kernel tick load</span>
+          <span class="kpi-delta">OS core tick utilization</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkHostCpu" viewBox="0 0 100 24"></svg>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
+      <!-- KPI 4: Real Host RAM -->
+      <div class="kpi-card" data-action="chart-host-ram" title="Click to chart Real Host RAM">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill blue-pill">PHYSICAL RAM</div>
         </div>
         <div class="kpi-data">
           <span class="kpi-label">REAL HOST RAM</span>
-          <div class="kpi-value" id="kpiHostRam">0.0%</div>
-          <span class="kpi-delta">Physical memory load</span>
+          <div class="kpi-value blue-glow" id="kpiHostRam">0.0%</div>
+          <span class="kpi-delta" id="kpiHostRamSub">Memory consumption</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkHostRam" viewBox="0 0 100 24"></svg>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap amber">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
+      <!-- KPI 5: Dispatched Alerts -->
+      <div class="kpi-card" data-action="scroll-alerts" title="Click to view Incident Dispatch Feed">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill warning" id="kpiAlertTrendPill">EVALUATING</div>
         </div>
         <div class="kpi-data">
-          <span class="kpi-label">DISPATCHED ALERTS</span>
+          <span class="kpi-label">DISPATCHED INCIDENTS</span>
           <div class="kpi-value warning" id="kpiAlerts">0</div>
-          <span class="kpi-delta">Threshold incidents</span>
+          <span class="kpi-delta">AST threshold incidents</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkAlerts" viewBox="0 0 100 24"></svg>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrap teal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
+      <!-- KPI 6: Active AST Rules -->
+      <div class="kpi-card" data-action="scroll-rules" title="Click to open AST Rule Policy Studio">
+        <div class="kpi-card-top">
+          <div class="kpi-icon-wrap teal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div class="kpi-trend-pill teal-pill">ACTIVE AST</div>
         </div>
         <div class="kpi-data">
           <span class="kpi-label">ACTIVE AST RULES</span>
           <div class="kpi-value success" id="kpiRules">5</div>
-          <span class="kpi-delta">Evaluator policies</span>
+          <span class="kpi-delta">Sub-millisecond policies</span>
         </div>
+        <svg class="kpi-sparkline" id="sparkRules" viewBox="0 0 100 24"></svg>
       </div>
     </section>
 
-    <!-- Main Operational Workspace: Waveform Studio & Real-Time Incident Stream -->
+    <!-- Operational Workspace: Next-Gen Waveform Studio & Real-Time Incident Stream -->
     <main class="dashboard-grid">
       <!-- Left Column: High-DPI Waveform Studio -->
       <section class="panel chart-panel">
@@ -225,11 +333,62 @@
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
             <h2>Live Telemetry Waveform Studio</h2>
-            <span class="chart-tag" id="chartSourceTag">HOST HARDWARE</span>
+            <span class="chart-tag" id="chartSourceTag">100% REAL HARDWARE KERNEL</span>
           </div>
 
+          <!-- Chart Control Bar -->
           <div class="chart-controls">
-            <!-- Grouped Metric Selector -->
+            <!-- Time Window Range Buttons -->
+            <div class="time-range-group">
+              <button class="btn-range active" data-range="60">60s</button>
+              <button class="btn-range" data-range="120">2m</button>
+              <button class="btn-range" data-range="300">5m</button>
+            </div>
+
+            <!-- Kalman Filter Toggle -->
+            <label class="filter-toggle" title="Toggle real-time 1D Kalman noise filtering overlay">
+              <input type="checkbox" id="chkKalman" checked>
+              <span class="filter-toggle-label">Kalman Denoise</span>
+            </label>
+
+            <!-- Quick Sample Inject -->
+            <button class="btn btn-sm btn-primary" id="btnSimulate" title="Inject a test sample frame into active metric">Inject Frame</button>
+          </div>
+        </div>
+
+        <!-- Quick Metric Tabs Strip -->
+        <div class="metric-tabs-strip">
+          <div class="quick-tabs">
+            <button class="metric-tab active" data-metric="host_cpu_utilization">
+              <span class="tab-icon">💻</span>
+              <span class="tab-name">Host CPU %</span>
+              <span class="tab-badge hw-badge">REAL</span>
+            </button>
+            <button class="metric-tab" data-metric="host_ram_used_pct">
+              <span class="tab-icon">💻</span>
+              <span class="tab-name">Host RAM %</span>
+              <span class="tab-badge hw-badge">REAL</span>
+            </button>
+            <button class="metric-tab" data-metric="vibration_rms">
+              <span class="tab-icon">✈️</span>
+              <span class="tab-name">Turbofan Vib</span>
+            </button>
+            <button class="metric-tab" data-metric="exhaust_temp">
+              <span class="tab-icon">🔥</span>
+              <span class="tab-name">Turbine EGT</span>
+            </button>
+            <button class="metric-tab" data-metric="grid_frequency">
+              <span class="tab-icon">⚡</span>
+              <span class="tab-name">Grid 50Hz</span>
+            </button>
+            <button class="metric-tab" data-metric="storage_temp">
+              <span class="tab-icon">❄️</span>
+              <span class="tab-name">Cold Storage</span>
+            </button>
+          </div>
+
+          <!-- Dropdown for Remaining Metrics -->
+          <div class="metric-select-wrap">
             <select id="metricSelector" class="form-select">
               <optgroup label="── 100% REAL HARDWARE KERNEL METRICS ──">
                 <option value="host_cpu_utilization" selected>Host CPU Utilization (%) [Real Hardware]</option>
@@ -248,21 +407,28 @@
                 <option value="relative_humidity">Cold Storage Relative Humidity (%)</option>
               </optgroup>
             </select>
-
-            <!-- Kalman Filter Toggle -->
-            <label class="filter-toggle" title="Enable real-time 1D Kalman noise filtering overlay">
-              <input type="checkbox" id="chkKalman" checked>
-              <span class="filter-toggle-label">Kalman Denoise</span>
-            </label>
-
-            <!-- Quick Sample Inject -->
-            <button class="btn btn-sm btn-primary" id="btnSimulate" title="Inject a sample frame into current metric">Inject Frame</button>
           </div>
         </div>
 
-        <!-- Waveform Canvas Container -->
-        <div class="canvas-container">
+        <!-- Waveform Canvas Container with Interactive Crosshair HUD -->
+        <div class="canvas-container" id="canvasContainer">
           <canvas id="waveformCanvas"></canvas>
+          <!-- Floating Inspection Crosshair Tooltip -->
+          <div class="crosshair-tooltip" id="crosshairTooltip" style="display: none;">
+            <div class="tooltip-header" id="ttTime">--:--:--</div>
+            <div class="tooltip-row">
+              <span class="tt-label">RAW VALUE:</span>
+              <strong class="tt-val cyan" id="ttRaw">--</strong>
+            </div>
+            <div class="tooltip-row" id="ttKalmanRow">
+              <span class="tt-label">KALMAN ESTIMATE:</span>
+              <strong class="tt-val emerald" id="ttKalman">--</strong>
+            </div>
+            <div class="tooltip-row" id="ttThresholdRow">
+              <span class="tt-label">THRESHOLD:</span>
+              <strong class="tt-val amber" id="ttThreshold">--</strong>
+            </div>
+          </div>
         </div>
 
         <!-- Live Waveform Stats Bar -->
@@ -291,7 +457,7 @@
       </section>
 
       <!-- Right Column: Incident Dispatch Feed -->
-      <section class="panel alerts-panel">
+      <section class="panel alerts-panel" id="alertsPanel">
         <div class="panel-header">
           <div class="panel-title">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -302,6 +468,12 @@
             <h2>Incident Dispatch Feed</h2>
           </div>
           <div class="alerts-header-actions">
+            <!-- Filter Pills -->
+            <div class="alert-filter-group">
+              <button class="btn-filter active" data-filter="ALL">All</button>
+              <button class="btn-filter" data-filter="CRITICAL">Crit</button>
+              <button class="btn-filter" data-filter="WARNING">Warn</button>
+            </div>
             <span class="badge" id="alertCountBadge">0 Incidents</span>
             <button id="btnClearAlerts" class="btn btn-xs btn-outline" title="Clear resolved incidents">Clear</button>
           </div>
@@ -312,8 +484,8 @@
       </section>
     </main>
 
-    <!-- Asset Fleet Matrix (Interactive Device Cards) -->
-    <section class="panel fleet-matrix-panel">
+    <!-- Connected Asset Fleet Matrix (Interactive Device Cards with Live Sparklines) -->
+    <section class="panel fleet-matrix-panel" id="fleetPanel">
       <div class="panel-header">
         <div class="panel-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -324,7 +496,9 @@
           </svg>
           <h2>Connected Asset Fleet Matrix</h2>
         </div>
-        <span class="badge success" id="fleetOnlineBadge">4 Nodes Online</span>
+        <div class="fleet-header-right">
+          <span class="badge success" id="fleetOnlineBadge">4 Nodes Online</span>
+        </div>
       </div>
 
       <div class="fleet-cards-grid">
@@ -352,7 +526,12 @@
               <span class="am-val" id="cardRssVal">-- MB</span>
             </div>
           </div>
-          <button class="btn btn-xs btn-card-focus" data-focus-metric="host_cpu_utilization">Chart Host CPU</button>
+          <!-- Card Mini Sparkline -->
+          <svg class="card-sparkline" id="sparkCardHost" viewBox="0 0 200 36"></svg>
+          <div class="card-action-row">
+            <button class="btn btn-xs btn-card-focus" data-focus-metric="host_cpu_utilization">Chart CPU</button>
+            <button class="btn btn-xs btn-card-stress" id="btnCardStressHost" title="Inject 96% CPU spike">Spike CPU</button>
+          </div>
         </div>
 
         <!-- Asset Card 2: Turbofan Alpha -->
@@ -361,7 +540,7 @@
             <div class="asset-icon aero-icon">✈️</div>
             <div class="asset-info">
               <span class="asset-id">turbofan_alpha</span>
-              <span class="asset-desc">Turbofan Engine Core</span>
+              <span class="asset-desc">Turbofan Engine Core (CFM56)</span>
             </div>
             <span class="asset-badge status-nominal" id="cardTurbofanBadge">NOMINAL</span>
           </div>
@@ -379,7 +558,11 @@
               <span class="am-val" id="cardOilVal">-- PSI</span>
             </div>
           </div>
-          <button class="btn btn-xs btn-card-focus" data-focus-metric="vibration_rms">Chart Vibration</button>
+          <svg class="card-sparkline" id="sparkCardTurbofan" viewBox="0 0 200 36"></svg>
+          <div class="card-action-row">
+            <button class="btn btn-xs btn-card-focus" data-focus-metric="vibration_rms">Chart Vib</button>
+            <button class="btn btn-xs btn-card-stress" id="btnCardStressTurbofan" title="Inject 24.8 mm/s vibration spike">Spike Vib</button>
+          </div>
         </div>
 
         <!-- Asset Card 3: Inverter Beta -->
@@ -388,7 +571,7 @@
             <div class="asset-icon solar-icon">⚡</div>
             <div class="asset-info">
               <span class="asset-id">inverter_beta</span>
-              <span class="asset-desc">3-Phase Grid Inverter</span>
+              <span class="asset-desc">3-Phase Grid Inverter (50Hz)</span>
             </div>
             <span class="asset-badge status-nominal" id="cardInverterBadge">NOMINAL</span>
           </div>
@@ -406,7 +589,11 @@
               <span class="am-val" id="cardVoltVal">-- V</span>
             </div>
           </div>
-          <button class="btn btn-xs btn-card-focus" data-focus-metric="grid_frequency">Chart Frequency</button>
+          <svg class="card-sparkline" id="sparkCardInverter" viewBox="0 0 200 36"></svg>
+          <div class="card-action-row">
+            <button class="btn btn-xs btn-card-focus" data-focus-metric="grid_frequency">Chart Freq</button>
+            <button class="btn btn-xs btn-card-stress" id="btnCardStressInverter" title="Inject frequency deviation">Drop Freq</button>
+          </div>
         </div>
 
         <!-- Asset Card 4: Cold Storage Gamma -->
@@ -415,7 +602,7 @@
             <div class="asset-icon cryo-icon">❄️</div>
             <div class="asset-info">
               <span class="asset-id">cold_storage_gamma</span>
-              <span class="asset-desc">Pharma Cryo Storage</span>
+              <span class="asset-desc">Biotech Cryo Vault (-20°C)</span>
             </div>
             <span class="asset-badge status-nominal" id="cardColdBadge">NOMINAL</span>
           </div>
@@ -433,7 +620,11 @@
               <span class="am-val" id="cardDoorVal">-- s</span>
             </div>
           </div>
-          <button class="btn btn-xs btn-card-focus" data-focus-metric="storage_temp">Chart Temp</button>
+          <svg class="card-sparkline" id="sparkCardCold" viewBox="0 0 200 36"></svg>
+          <div class="card-action-row">
+            <button class="btn btn-xs btn-card-focus" data-focus-metric="storage_temp">Chart Temp</button>
+            <button class="btn btn-xs btn-card-stress" id="btnCardStressCold" title="Inject thaw breach">Thaw Breach</button>
+          </div>
         </div>
       </div>
 
@@ -444,7 +635,7 @@
     </section>
 
     <!-- Operations Section: AST Rule Studio & Fault Tolerance Hub -->
-    <section class="middle-grid">
+    <section class="middle-grid" id="ruleStudioPanel">
       <!-- Rule Policy Management Studio -->
       <div class="panel rule-panel">
         <div class="panel-header">
@@ -457,7 +648,9 @@
             </svg>
             <h2>AST Rule Engine & Policy Studio</h2>
           </div>
-          <span class="badge" id="ruleCountBadge">5 Policies</span>
+          <div class="rule-header-actions">
+            <span class="badge" id="ruleCountBadge">5 Policies</span>
+          </div>
         </div>
         <div class="rule-content-grid">
           <!-- Active Rules Table -->
@@ -470,20 +663,30 @@
                   <th>Condition</th>
                   <th>Deadband</th>
                   <th>Severity</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody id="ruleTableBody">
                 <tr>
-                  <td colspan="6" class="empty-row">Loading active AST rule policies...</td>
+                  <td colspan="7" class="empty-row">Loading active AST rule policies...</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <!-- Add Rule Form -->
+          <!-- Add Rule Form with Live Syntax Preview -->
           <form id="createRuleForm" class="rule-create-form">
-            <h3 class="form-heading">Deploy Dynamic AST Rule</h3>
+            <div class="form-header-row">
+              <h3 class="form-heading">Deploy Dynamic AST Rule</h3>
+              <div class="preset-links">
+                <span class="preset-label">Presets:</span>
+                <button type="button" class="btn-preset" data-preset="vib">Vib ISO</button>
+                <button type="button" class="btn-preset" data-preset="egt">EGT Heat</button>
+                <button type="button" class="btn-preset" data-preset="cpu">CPU 90%</button>
+              </div>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label>Rule ID</label>
@@ -523,6 +726,13 @@
                 </select>
               </div>
             </div>
+
+            <!-- Dynamic AST Syntax Preview Box -->
+            <div class="ast-syntax-preview" id="astPreviewBox">
+              <span class="ast-prev-label">EVALUATOR CLAUSE:</span>
+              <code id="astPreviewCode">IF (vibration_rms > 18.0) DISPATCH WARNING</code>
+            </div>
+
             <button type="submit" class="btn btn-primary btn-sm">Register AST Policy</button>
           </form>
         </div>
@@ -541,9 +751,30 @@
           <span class="badge success" id="cbBadge">CLOSED (Nominal)</span>
         </div>
         <div class="resilience-content">
+          <!-- Visual State Machine Diagram -->
+          <div class="circuit-state-diagram">
+            <div class="cb-node active" id="nodeClosed">
+              <span class="cb-dot"></span>
+              <strong>CLOSED</strong>
+              <span>Nominal Flow</span>
+            </div>
+            <div class="cb-connector"></div>
+            <div class="cb-node" id="nodeHalfOpen">
+              <span class="cb-dot"></span>
+              <strong>HALF-OPEN</strong>
+              <span>Canary Test</span>
+            </div>
+            <div class="cb-connector"></div>
+            <div class="cb-node" id="nodeOpen">
+              <span class="cb-dot"></span>
+              <strong>OPEN</strong>
+              <span>Isolated</span>
+            </div>
+          </div>
+
           <div class="resilience-stat-box">
             <div class="stat-item">
-              <span class="stat-label">Circuit Status:</span>
+              <span class="stat-label">Active State:</span>
               <span class="stat-val" id="cbState">CLOSED</span>
             </div>
             <div class="stat-item">
@@ -565,7 +796,14 @@
 
         <!-- Quick Live Ingestion Console -->
         <div class="quick-ingest-box">
-          <h4 class="sub-heading">Direct Telemetry Ingest Frame</h4>
+          <div class="ingest-header-row">
+            <h4 class="sub-heading">Direct Telemetry Ingest Frame</h4>
+            <div class="ingest-presets">
+              <button type="button" class="btn-ingest-preset" data-preset="turbofan">Turbofan</button>
+              <button type="button" class="btn-ingest-preset" data-preset="inverter">Inverter</button>
+              <button type="button" class="btn-ingest-preset" data-preset="cold">Cold</button>
+            </div>
+          </div>
           <form id="ingestForm" class="ingest-form">
             <div class="form-row">
               <div class="form-group">
@@ -601,7 +839,7 @@
       <div class="footer-right">
         <span>Engine: Node.js + WebSocket + Canvas 60fps</span>
         <span>•</span>
-        <span>Edge Hardware: Local Kernel Host</span>
+        <span>Kernel Sensor: Local Windows Edge</span>
         <span>•</span>
         <a href="/metrics" target="_blank">Prometheus Telemetry</a>
       </div>
