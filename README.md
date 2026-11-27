@@ -14,6 +14,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - **Dead-Letter Queue (DLQ)**: Quarantines malformed or out-of-bounds telemetry payloads with operator retry capabilities.
 - **LTTB Downsampler & Decimation Engine**: Preserves critical peaks, envelope geometry, and transient anomalies while reducing time-series density via Largest-Triangle-Three-Buckets and Min-Max decimation.
 - **Adaptive Ingestion Circuit Breaker**: Finite-state machine (`CLOSED`, `OPEN`, `HALF_OPEN`) with canary probing and backpressure shed to protect downstream storage against load spikes.
+- **Geospatial Geofencing Engine**: Circular (Haversine) and arbitrary polygon (Ray-casting) boundary monitors with containment transition tracking (ENTER, EXIT).
 - **Real-time WebSocket Streaming**: Live broadcast of telemetry updates and critical threshold alerts to dashboard clients.
 
 ## Architecture
@@ -24,6 +25,7 @@ A real-time telemetry processing, AST rule evaluation, and notification platform
 - `backend/engine/metricExporter.js`: OpenMetrics and Prometheus text exposition serializer.
 - `backend/engine/anomalyDetector.js`: Statistical online Welford variance and Z-Score outlier detector.
 - `backend/engine/circuitBreaker.js`: Ingestion backpressure regulator with CLOSED/OPEN/HALF_OPEN canary states.
+- `backend/engine/geofenceEngine.js`: Geospatial boundary engine with Haversine distance and polygon ray-casting.
 - `backend/engine/downsampler.js`: Largest-Triangle-Three-Buckets (LTTB) and Min-Max time-series decimation.
 - `backend/engine/deadLetterQueue.js`: Ingestion packet quarantine, metrics, and retry dispatcher.
 - `backend/engine/eventReplay.js`: Historical time-series replay engine with speed controls and seek capabilities.

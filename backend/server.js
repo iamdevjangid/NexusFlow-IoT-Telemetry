@@ -16,6 +16,7 @@ const { CircuitBreaker } = require('./engine/circuitBreaker');
 const { DeviceSimulator, DEVICE_PROFILES } = require('./simulator/deviceSimulator');
 const { TelemetryExporter } = require('./engine/telemetryExporter');
 const { HostMetricsSensor } = require('./engine/hostMetricsSensor');
+const { GeofenceEngine } = require('./engine/geofenceEngine');
 
 const app = express();
 const server = http.createServer(app);
@@ -30,6 +31,7 @@ const replayEngine = new EventReplayEngine();
 const dlq = new DeadLetterQueue();
 const circuitBreaker = new CircuitBreaker();
 const simulator = new DeviceSimulator();
+const geofenceEngine = new GeofenceEngine();
 let isSimulatorActive = false;
 let simulatorEmittedCount = 0;
 
@@ -494,6 +496,23 @@ app.get('/api/host-sensor/status', (req, res) => {
       uptimeFormatted
     }
   });
+});
+
+// Geospatial Geofence Management Endpoints
+app.get('/api/geofences', (req, res) => {
+  res.json({ geofences: geofenceEngine.getGeofences() });
+});
+
+app.post('/api/geofences/circle', (req, res) => {
+  const { id, name, latitude, longitude, radiusMeters } = req.body;
+  geofenceEngine.addCircularGeofence(id, name, latitude, longitude, radiusMeters);
+  res.status(201).json({ success: true, geofence: { id, name, type: 'CIRCLE' } });
+});
+
+app.post('/api/geofences/evaluate', (req, res) => {
+  const { deviceId, latitude, longitude } = req.body;
+  const breaches = geofenceEngine.evaluatePosition(deviceId, latitude, longitude);
+  res.json({ deviceId, breaches });
 });
 
 const PORT = process.env.PORT || 4000;
